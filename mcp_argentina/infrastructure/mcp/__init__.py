@@ -1,1 +1,1 @@
-"""MCP Server - implementación del servidor Model Context Protocol."""
+"""MCP server components."""

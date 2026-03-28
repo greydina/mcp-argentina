@@ -1,3 +1,1 @@
-"""
-Capa de aplicación - casos de uso y puertos.
-"""
+"""Application layer - Casos de uso y ports."""

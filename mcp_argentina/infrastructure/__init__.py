@@ -1,3 +1,1 @@
-"""
-Capa de infraestructura - adapters y servicios externos.
-"""
+"""Infrastructure layer - Adapters e implementaciones concretas."""

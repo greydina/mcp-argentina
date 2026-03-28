@@ -1,61 +1,30 @@
-"""
-Interface abstracta para repositorios de cotizaciones.
-"""
+"""Port para repositorio de cotizaciones."""
 
-from datetime import datetime
-from typing import Protocol
+from abc import ABC, abstractmethod
 
 from mcp_argentina.domain.entities.cotizacion import Cotizacion
 
 
-class CotizacionRepository(Protocol):
-    """
-    Protocolo para repositorios de cotizaciones.
-    
-    Define los métodos que debe implementar cualquier adapter
-    que provea cotizaciones de monedas.
-    """
-    
-    async def get_dolar(self, casa: str) -> Cotizacion:
-        """
-        Obtiene la cotización del dólar para una casa específica.
-        
+class CotizacionRepository(ABC):
+    """Interfaz para obtener cotizaciones."""
+
+    @abstractmethod
+    async def obtener_dolar(self, tipo: str) -> Cotizacion:
+        """Obtiene cotización de un tipo de dólar específico.
+
         Args:
-            casa: Tipo de cotización (blue, oficial, mep, ccl, cripto, tarjeta)
-            
+            tipo: "oficial", "blue", "mep", "ccl", "tarjeta", "cripto"
+
         Returns:
-            Cotización actual del dólar
-            
+            Cotización del dólar solicitado
+
         Raises:
-            ValueError: Si la casa no es válida
-            ConnectionError: Si falla la conexión al proveedor
+            ValueError: Si el tipo no es válido
+            ConnectionError: Si falla la conexión
         """
-        ...
-    
-    async def get_todas_las_cotizaciones(self) -> list[Cotizacion]:
-        """
-        Obtiene todas las cotizaciones disponibles del dólar.
-        
-        Returns:
-            Lista de cotizaciones de diferentes casas
-            
-        Raises:
-            ConnectionError: Si falla la conexión al proveedor
-        """
-        ...
-    
-    async def get_cotizacion_moneda(self, moneda: str) -> Cotizacion:
-        """
-        Obtiene la cotización de una moneda específica.
-        
-        Args:
-            moneda: Código de moneda (EUR, BRL, etc.)
-            
-        Returns:
-            Cotización actual de la moneda
-            
-        Raises:
-            ValueError: Si la moneda no es válida
-            ConnectionError: Si falla la conexión al proveedor
-        """
-        ...
+        pass
+
+    @abstractmethod
+    async def obtener_todas(self) -> list[Cotizacion]:
+        """Obtiene todas las cotizaciones disponibles."""
+        pass

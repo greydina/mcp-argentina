@@ -1,7 +1,7 @@
 """Value Object Precio - Representa un valor monetario."""
 
 from decimal import Decimal
-from typing import Self
+from typing_extensions import Self
 
 from pydantic import BaseModel, Field, field_validator
 
