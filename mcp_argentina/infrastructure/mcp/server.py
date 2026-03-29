@@ -17,6 +17,7 @@ from mcp.types import (
     Tool,
 )
 
+from mcp_argentina.application.services.graficos_service import PuntoGrafico
 from mcp_argentina.infrastructure.container import Container
 
 # Crear servidor MCP
@@ -45,14 +46,22 @@ async def list_tools() -> list[Tool]:
     return [
         Tool(
             name="get_dolar",
-            description="Obtiene la cotización actual de un tipo de dólar específico (blue, oficial, mep, ccl, cripto, tarjeta)",
+            description="Obtiene la cotización actual de un tipo de dólar específico",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "tipo": {
                         "type": "string",
-                        "description": "Tipo de dólar: 'blue', 'oficial', 'mep', 'ccl', 'cripto', 'tarjeta'",
-                        "enum": ["blue", "oficial", "mep", "ccl", "cripto", "tarjeta"],
+                        "description": "Tipo de dólar",
+                        "enum": [
+                            "blue",
+                            "oficial",
+                            "mep",
+                            "ccl",
+                            "cripto",
+                            "tarjeta",
+                            "mayorista",
+                        ],
                     }
                 },
                 "required": ["tipo"],
@@ -60,35 +69,20 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_cotizaciones",
-            description="Obtiene todas las cotizaciones de dólar disponibles en Argentina",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-            },
+            description="Obtiene todas las cotizaciones de dólar disponibles",
+            inputSchema={"type": "object", "properties": {}},
         ),
         Tool(
             name="convertir",
-            description="Convierte un monto entre ARS y USD usando un tipo de cambio específico",
+            description="Convierte un monto entre ARS y USD",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "monto": {
-                        "type": "number",
-                        "description": "Monto a convertir (debe ser mayor a 0)",
-                    },
-                    "de": {
-                        "type": "string",
-                        "description": "Moneda origen",
-                        "enum": ["ARS", "USD"],
-                    },
-                    "a": {
-                        "type": "string",
-                        "description": "Moneda destino",
-                        "enum": ["ARS", "USD"],
-                    },
+                    "monto": {"type": "number", "description": "Monto a convertir"},
+                    "de": {"type": "string", "enum": ["ARS", "USD"]},
+                    "a": {"type": "string", "enum": ["ARS", "USD"]},
                     "tipo_cambio": {
                         "type": "string",
-                        "description": "Tipo de cambio a usar",
                         "enum": ["blue", "oficial", "mep", "ccl"],
                     },
                 },
@@ -97,10 +91,72 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_riesgo_pais",
-            description="Obtiene el valor actual del riesgo país de Argentina",
+            description="Obtiene el riesgo país de Argentina",
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        Tool(
+            name="get_historico",
+            description="Obtiene histórico de cotizaciones del dólar",
             inputSchema={
                 "type": "object",
-                "properties": {},
+                "properties": {
+                    "tipo": {
+                        "type": "string",
+                        "enum": ["blue", "oficial", "mep", "ccl"],
+                        "default": "blue",
+                    },
+                    "dias": {
+                        "type": "integer",
+                        "description": "Días hacia atrás",
+                        "default": 30,
+                    },
+                },
+            },
+        ),
+        Tool(
+            name="get_inflacion",
+            description="Obtiene datos de inflación actual y acumulada",
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        Tool(
+            name="get_moneda",
+            description="Obtiene cotización de una moneda extranjera (EUR, BRL, UYU, etc.)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "moneda": {
+                        "type": "string",
+                        "description": "Código de moneda (EUR, BRL, UYU, CLP, etc.)",
+                    }
+                },
+                "required": ["moneda"],
+            },
+        ),
+        Tool(
+            name="get_todas_monedas",
+            description="Obtiene cotizaciones de todas las monedas extranjeras",
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        Tool(
+            name="get_variacion",
+            description="Calcula la variación porcentual del dólar en un período",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "tipo": {"type": "string", "default": "blue"},
+                    "dias": {"type": "integer", "default": 7},
+                },
+            },
+        ),
+        Tool(
+            name="get_grafico",
+            description="Genera un gráfico ASCII de la evolución del dólar",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "tipo": {"type": "string", "default": "blue"},
+                    "dias": {"type": "integer", "default": 30},
+                },
             },
         ),
     ]
@@ -127,7 +183,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         cotizaciones = await container.repository.obtener_todas()
         lines = ["📊 Cotizaciones actuales:\n"]
         for cot in cotizaciones:
-            lines.append(f"• {cot.nombre}: ${cot.compra.valor:,.2f} / ${cot.venta.valor:,.2f}")
+            lines.append(f"• {cot.nombre}: ${cot.compra.valor:,.0f} / ${cot.venta.valor:,.0f}")
         return [TextContent(type="text", text="\n".join(lines))]
 
     elif name == "convertir":
@@ -140,19 +196,16 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             return [
                 TextContent(type="text", text="❌ Moneda origen y destino no pueden ser iguales")
             ]
-
         if monto <= 0:
             return [TextContent(type="text", text="❌ El monto debe ser mayor a 0")]
 
         cotizacion = await container.repository.obtener_dolar(tipo_cambio)
 
         if de == "USD":
-            # Vendemos USD, compramos ARS
             resultado = monto * float(cotizacion.venta.valor)
             operacion = "venta"
             valor_usado = cotizacion.venta.valor
         else:
-            # Compramos USD, vendemos ARS
             resultado = monto / float(cotizacion.compra.valor)
             operacion = "compra"
             valor_usado = cotizacion.compra.valor
@@ -171,6 +224,81 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = f"🌡️ Riesgo País Argentina: {riesgo} puntos"
         return [TextContent(type="text", text=result)]
 
+    elif name == "get_historico":
+        tipo = arguments.get("tipo", "blue")
+        dias = arguments.get("dias", 30)
+        historicos = await container.historicos.obtener_historico_dolar(tipo, dias=dias)
+
+        if not historicos:
+            return [TextContent(type="text", text="❌ Sin datos históricos")]
+
+        lines = [f"📈 Histórico Dólar {tipo.upper()} (últimos {dias} días)\n"]
+        for h in historicos[-10:]:  # Últimos 10
+            lines.append(f"• {h.fecha}: ${h.compra:,.0f} / ${h.venta:,.0f}")
+
+        # Variación total
+        if len(historicos) >= 2:
+            inicio = float(historicos[0].venta)
+            fin = float(historicos[-1].venta)
+            var = ((fin - inicio) / inicio) * 100
+            emoji = "📈" if var > 0 else "📉"
+            lines.append(f"\n{emoji} Variación: {var:+.1f}%")
+
+        return [TextContent(type="text", text="\n".join(lines))]
+
+    elif name == "get_inflacion":
+        inflacion = await container.inflacion.obtener_actual()
+        result = (
+            f"📊 Inflación Argentina\n"
+            f"Mensual: {inflacion.mensual}%\n"
+            f"Interanual: {inflacion.interanual:.1f}%\n"
+            f"Acumulada {inflacion.fecha_ultimo_dato.year}: {inflacion.acumulada_anio:.1f}%\n"
+            f"Último dato: {inflacion.fecha_ultimo_dato}"
+        )
+        return [TextContent(type="text", text=result)]
+
+    elif name == "get_moneda":
+        moneda = arguments["moneda"].upper()
+        cot = await container.monedas.obtener_moneda(moneda)
+        result = (
+            f"💱 {cot.nombre} ({cot.moneda})\nCompra: ${cot.compra:,.2f}\nVenta: ${cot.venta:,.2f}"
+        )
+        return [TextContent(type="text", text=result)]
+
+    elif name == "get_todas_monedas":
+        monedas = await container.monedas.obtener_todas()
+        lines = ["💱 Cotizaciones de monedas:\n"]
+        for m in monedas[:10]:  # Top 10
+            lines.append(f"• {m.nombre}: ${m.venta:,.2f}")
+        return [TextContent(type="text", text="\n".join(lines))]
+
+    elif name == "get_variacion":
+        tipo = arguments.get("tipo", "blue")
+        dias = arguments.get("dias", 7)
+        var = await container.historicos.obtener_variacion_dolar(tipo, dias=dias)
+        emoji = "📈" if var["variacion_porcentual"] > 0 else "📉"
+        result = (
+            f"{emoji} Variación Dólar {tipo.upper()} ({dias} días)\n"
+            f"Inicio: ${var['valor_inicio']:,.0f}\n"
+            f"Actual: ${var['valor_fin']:,.0f}\n"
+            f"Variación: {var['variacion_porcentual']:+.1f}%"
+        )
+        return [TextContent(type="text", text=result)]
+
+    elif name == "get_grafico":
+        tipo = arguments.get("tipo", "blue")
+        dias = arguments.get("dias", 30)
+        historicos = await container.historicos.obtener_historico_dolar(tipo, dias=dias)
+
+        if not historicos:
+            return [TextContent(type="text", text="❌ Sin datos para graficar")]
+
+        puntos = [PuntoGrafico(fecha=h.fecha, valor=float(h.venta)) for h in historicos]
+        grafico = container.graficos.generar_linea(
+            puntos, titulo=f"Dólar {tipo.upper()} ({dias} días)"
+        )
+        return [TextContent(type="text", text=grafico)]
+
     else:
         return [TextContent(type="text", text=f"❌ Tool '{name}' no encontrado")]
 
@@ -187,13 +315,19 @@ async def list_resources() -> list[Resource]:
         Resource(
             uri="economia://cotizaciones/actual",
             name="Cotizaciones Actuales",
-            description="Snapshot de todas las cotizaciones de dólar en tiempo real",
+            description="Snapshot de todas las cotizaciones de dólar",
             mimeType="application/json",
         ),
         Resource(
             uri="economia://indicadores/resumen",
             name="Resumen de Indicadores",
             description="Indicadores económicos clave de Argentina",
+            mimeType="application/json",
+        ),
+        Resource(
+            uri="economia://inflacion/actual",
+            name="Inflación Actual",
+            description="Datos de inflación mensual, interanual y acumulada",
             mimeType="application/json",
         ),
     ]
@@ -223,8 +357,9 @@ async def read_resource(uri: str) -> str:
 
     elif uri == "economia://indicadores/resumen":
         cotizaciones = await container.repository.obtener_todas()
+        riesgo = await container.repository.obtener_riesgo_pais()
+        inflacion = await container.inflacion.obtener_actual()
 
-        # Buscar blue y oficial para calcular brecha
         blue_venta = None
         oficial_venta = None
         for cot in cotizaciones:
@@ -241,8 +376,20 @@ async def read_resource(uri: str) -> str:
             "dolar_blue": blue_venta,
             "dolar_oficial": oficial_venta,
             "brecha_porcentaje": brecha,
-            "cotizaciones_disponibles": [cot.nombre.lower() for cot in cotizaciones],
-            "source": "dolarapi.com",
+            "riesgo_pais": riesgo,
+            "inflacion_mensual": inflacion.mensual,
+            "inflacion_interanual": inflacion.interanual,
+            "source": "dolarapi.com, argentinadatos.com",
+        }
+        return json.dumps(data, indent=2, ensure_ascii=False)
+
+    elif uri == "economia://inflacion/actual":
+        inflacion = await container.inflacion.obtener_actual()
+        data = {
+            "mensual": inflacion.mensual,
+            "interanual": inflacion.interanual,
+            "acumulada_anio": inflacion.acumulada_anio,
+            "fecha_ultimo_dato": inflacion.fecha_ultimo_dato.isoformat(),
         }
         return json.dumps(data, indent=2, ensure_ascii=False)
 
@@ -265,18 +412,18 @@ async def list_prompts() -> list[Prompt]:
             arguments=[
                 PromptArgument(
                     name="enfoque",
-                    description="Área de enfoque: 'general', 'mercado_cambiario', 'brecha', 'tendencias'",
+                    description="Área de enfoque: 'general', 'mercado_cambiario', 'inflacion'",
                     required=False,
                 ),
             ],
         ),
         Prompt(
             name="comparar_dolares",
-            description="Compara diferentes tipos de dólar y explica sus diferencias",
+            description="Compara diferentes tipos de dólar",
             arguments=[
                 PromptArgument(
                     name="tipos",
-                    description="Tipos a comparar separados por coma (ej: 'blue,oficial,mep')",
+                    description="Tipos a comparar (ej: 'blue,oficial,mep')",
                     required=True,
                 ),
             ],
@@ -296,18 +443,21 @@ async def get_prompt(name: str, arguments: dict | None = None) -> list[PromptMes
                 role="user",
                 content=TextContent(
                     type="text",
-                    text=f"""Analiza la situación económica argentina actual con enfoque en: {enfoque}
+                    text=f"""Analiza la situación económica argentina con enfoque en: {enfoque}
 
 Usa los tools disponibles para obtener datos actuales:
-1. Primero consulta get_cotizaciones para ver todas las cotizaciones
-2. Luego analiza la brecha cambiaria
-3. Finalmente da tu análisis considerando:
-   - Situación del mercado cambiario
-   - Qué indica la brecha blue/oficial
-   - Implicancias para ahorristas y empresas
+1. get_cotizaciones - todas las cotizaciones
+2. get_inflacion - datos de inflación
+3. get_riesgo_pais - riesgo país
+4. get_variacion - variación reciente del dólar
 
-Formato: Claro, conciso, en español argentino.
-Extensión: 300-500 palabras.""",
+Analiza:
+- Situación del mercado cambiario
+- Brecha blue/oficial
+- Tendencia de inflación
+- Implicancias para ahorristas
+
+Formato: Claro, conciso, en español argentino.""",
                 ),
             )
         ]
@@ -321,13 +471,15 @@ Extensión: 300-500 palabras.""",
                     type="text",
                     text=f"""Compara los siguientes tipos de dólar: {tipos}
 
-Para cada tipo, explica:
-1. Qué es y cómo se opera
-2. Cotización actual (usa get_dolar para cada uno)
-3. Para qué se usa típicamente
+Para cada tipo usa get_dolar para obtener datos actuales.
+
+Explica:
+1. Qué es cada tipo y cómo se opera
+2. Cotización actual
+3. Casos de uso típicos
 4. Ventajas y desventajas
 
-Termina con una recomendación de cuál usar según diferentes perfiles de usuario.""",
+Termina con recomendación según perfil de usuario.""",
                 ),
             )
         ]

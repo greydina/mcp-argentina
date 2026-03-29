@@ -106,11 +106,38 @@ def mock_dolar_responses(httpx_mock: HTTPXMock):
     )
     # Riesgo país
     httpx_mock.add_response(
-        url="https://dolarapi.com/v1/ambito/riesgo-pais",
+        url="https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo",
         json={
             "valor": 1450,
             "fecha": "2026-03-29",
         },
+    )
+    # Inflación
+    httpx_mock.add_response(
+        url="https://api.argentinadatos.com/v1/finanzas/indices/inflacion",
+        json=[
+            {"fecha": "2025-12-31", "valor": 2.8},
+            {"fecha": "2026-01-31", "valor": 2.9},
+            {"fecha": "2026-02-28", "valor": 2.9},
+        ],
+    )
+    return httpx_mock
+
+
+@pytest.fixture
+def mock_historicos(httpx_mock: HTTPXMock):
+    """Mock de históricos."""
+    from datetime import date, timedelta
+    hoy = date.today()
+    
+    # Histórico blue
+    httpx_mock.add_response(
+        url="https://api.argentinadatos.com/v1/cotizaciones/dolares/blue",
+        json=[
+            {"casa": "blue", "compra": 1350, "venta": 1400, "fecha": (hoy - timedelta(days=2)).isoformat()},
+            {"casa": "blue", "compra": 1360, "venta": 1410, "fecha": (hoy - timedelta(days=1)).isoformat()},
+            {"casa": "blue", "compra": 1370, "venta": 1420, "fecha": hoy.isoformat()},
+        ],
     )
     return httpx_mock
 
@@ -356,3 +383,45 @@ class TestMCPServerMetadata:
         for prompt in prompts:
             assert prompt.name is not None
             assert prompt.description is not None
+
+
+class TestMCPNewToolsE2E:
+    """Tests E2E de los nuevos tools."""
+
+    @pytest.mark.asyncio
+    async def test_get_historico_e2e(self, mock_dolar_responses, mock_historicos) -> None:
+        """Test completo de get_historico."""
+        result = await call_tool("get_historico", {"tipo": "blue", "dias": 7})
+        
+        assert len(result) == 1
+        text = result[0].text
+        assert "Histórico" in text or "historico" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_get_inflacion_e2e(self, mock_dolar_responses) -> None:
+        """Test completo de get_inflacion."""
+        result = await call_tool("get_inflacion", {})
+        
+        assert len(result) == 1
+        text = result[0].text
+        assert "Inflación" in text or "inflacion" in text.lower()
+        assert "Mensual" in text or "mensual" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_get_variacion_e2e(self, mock_dolar_responses, mock_historicos) -> None:
+        """Test completo de get_variacion."""
+        result = await call_tool("get_variacion", {"tipo": "blue", "dias": 7})
+        
+        assert len(result) == 1
+        text = result[0].text
+        assert "Variación" in text or "variacion" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_get_grafico_e2e(self, mock_dolar_responses, mock_historicos) -> None:
+        """Test completo de get_grafico."""
+        result = await call_tool("get_grafico", {"tipo": "blue", "dias": 7})
+        
+        assert len(result) == 1
+        text = result[0].text
+        # Debe contener caracteres de gráfico ASCII
+        assert any(c in text for c in ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"])

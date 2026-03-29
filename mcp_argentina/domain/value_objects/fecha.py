@@ -27,6 +27,9 @@ class Fecha:
     @classmethod
     def desde_iso(cls, iso_string: str) -> "Fecha":
         """Parse desde ISO 8601."""
+        # Reemplazar Z por +00:00 para compatibilidad con Python 3.10
+        if iso_string.endswith("Z"):
+            iso_string = iso_string[:-1] + "+00:00"
         dt = datetime.fromisoformat(iso_string)
         return cls(dt)
 

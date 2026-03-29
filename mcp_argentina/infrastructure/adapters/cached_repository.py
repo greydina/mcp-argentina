@@ -119,8 +119,10 @@ class CachedCotizacionRepository(CotizacionRepository):
         # Consultar API (dolarapi tiene endpoint de riesgo país)
         import httpx
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get("https://dolarapi.com/v1/ambito/riesgo-pais")
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            response = await client.get(
+                "https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo"
+            )
             response.raise_for_status()
             data = response.json()
             riesgo = data.get("valor", 0)
