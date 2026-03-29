@@ -27,9 +27,97 @@ cd mcp-argentina
 pip install -e .
 ```
 
+## Integración con Clientes MCP
+
+Después de instalar, necesitás configurar tu cliente MCP para que ejecute el servidor.
+
+### Claude Desktop
+
+Editá `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "mcp-argentina": {
+      "command": "python",
+      "args": ["-m", "mcp_argentina"]
+    }
+  }
+}
+```
+
+Si usás un virtualenv:
+
+```json
+{
+  "mcpServers": {
+    "mcp-argentina": {
+      "command": "/ruta/a/tu/venv/bin/python",
+      "args": ["-m", "mcp_argentina"]
+    }
+  }
+}
+```
+
+### Cursor
+
+Editá `.cursor/mcp.json` en tu proyecto o `~/.cursor/mcp.json` global:
+
+```json
+{
+  "mcpServers": {
+    "mcp-argentina": {
+      "command": "python",
+      "args": ["-m", "mcp_argentina"]
+    }
+  }
+}
+```
+
+### Cline (VS Code)
+
+Agregá en la configuración de Cline:
+
+```json
+{
+  "mcp-argentina": {
+    "command": "python",
+    "args": ["-m", "mcp_argentina"]
+  }
+}
+```
+
+### OpenClaw
+
+Agregá en `openclaw.json`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "mcp-argentina": {
+        "command": "python",
+        "args": ["-m", "mcp_argentina"]
+      }
+    }
+  }
+}
+```
+
+### Verificar instalación
+
+Después de configurar, reiniciá tu cliente. Deberías ver las herramientas disponibles:
+- `get_dolar`
+- `get_cotizaciones`
+- `get_inflacion`
+- `get_riesgo_pais`
+- etc.
+
+Probá con: "¿Cuánto está el dólar blue?"
+
 ## Inicio Rápido
 
-### Como servidor MCP
+### Ejecutar servidor manualmente (debug)
 
 ```bash
 # Ejecutar servidor stdio
