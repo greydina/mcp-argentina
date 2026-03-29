@@ -69,3 +69,8 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+markers = [
+    "slow: tests that hit real APIs (deselect with '-m not slow')",
+    "integration: integration tests",
+]
+addopts = "-m 'not slow'"

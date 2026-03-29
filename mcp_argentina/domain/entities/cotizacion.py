@@ -28,6 +28,13 @@ class Cotizacion:
         return self.venta.valor - self.compra.valor
 
     @property
+    def spread_porcentual(self) -> float:
+        """Spread como porcentaje del precio de compra."""
+        if self.compra.valor == 0:
+            return 0.0
+        return float((self.spread / self.compra.valor) * 100)
+
+    @property
     def promedio(self) -> Decimal:
         """Precio promedio."""
         return (self.compra.valor + self.venta.valor) / 2
