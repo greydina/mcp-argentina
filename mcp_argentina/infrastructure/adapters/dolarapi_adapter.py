@@ -4,15 +4,22 @@ from decimal import Decimal
 
 import httpx
 
-from mcp_argentina.application.ports.cotizacion_repository import (
-    CotizacionRepository,
-)
 from mcp_argentina.domain.entities.cotizacion import Cotizacion
 from mcp_argentina.domain.value_objects.fecha import Fecha
 from mcp_argentina.domain.value_objects.precio import Precio
+from mcp_argentina.infrastructure.errors import (
+    APIError,
+    APITimeoutError,
+    InvalidCotizacionError,
+    NoDataError,
+    handle_http_error,
+)
+from mcp_argentina.infrastructure.logging import LogContext, get_logger
+
+logger = get_logger(__name__)
 
 
-class DolarAPIAdapter(CotizacionRepository):
+class DolarAPIAdapter:
     """
     Implementación del repositorio usando dolarapi.com.
 
@@ -22,7 +29,6 @@ class DolarAPIAdapter(CotizacionRepository):
     Endpoints utilizados:
         - GET /v1/dolares/{tipo} - Cotización específica
         - GET /v1/dolares - Todas las cotizaciones
-        - GET /v1/ambito/riesgo-pais - Riesgo país
 
     Example:
         >>> async with DolarAPIAdapter() as adapter:
@@ -31,6 +37,7 @@ class DolarAPIAdapter(CotizacionRepository):
     """
 
     BASE_URL = "https://dolarapi.com/v1"
+    SOURCE = "dolarapi"
 
     # Mapeo de tipos internos a endpoints de la API
     TIPO_MAP = {
@@ -80,101 +87,95 @@ class DolarAPIAdapter(CotizacionRepository):
         Obtiene cotización de dólar específico.
 
         Args:
-            tipo: Tipo de dólar (oficial, blue, mep, ccl, tarjeta, cripto)
+            tipo: Tipo de dólar (blue, oficial, mep, ccl, tarjeta, cripto, mayorista)
 
         Returns:
-            Cotizacion con datos actualizados
+            Cotizacion con los datos actuales
 
         Raises:
-            ValueError: Si el tipo no es válido
-            ConnectionError: Si falla la API
+            InvalidCotizacionError: Si el tipo no es válido
+            APIError: Si hay error en la API
         """
         tipo_lower = tipo.lower()
-
         if tipo_lower not in self.TIPO_MAP:
-            raise ValueError(
-                f"Tipo '{tipo}' no válido. Opciones: {', '.join(self.TIPO_MAP.keys())}"
-            )
+            raise InvalidCotizacionError(tipo, list(self.TIPO_MAP.keys()))
 
         endpoint = self.TIPO_MAP[tipo_lower]
         url = f"{self.BASE_URL}/dolares/{endpoint}"
 
-        try:
-            client = self._get_client()
-            response = await client.get(url)
-            response.raise_for_status()
-            data = response.json()
-        except httpx.TimeoutException as e:
-            raise ConnectionError(f"Timeout al consultar dolarapi: {e}") from e
-        except httpx.HTTPStatusError as e:
-            raise ConnectionError(f"Error HTTP {e.response.status_code}: {e}") from e
-        except httpx.HTTPError as e:
-            raise ConnectionError(f"Error al consultar dolarapi: {e}") from e
+        with LogContext(logger, "obtener_dolar", tipo=tipo):
+            try:
+                client = self._get_client()
+                response = await client.get(url)
 
-        return self._parse_cotizacion(data, tipo_lower)
+                if response.status_code != 200:
+                    raise handle_http_error(self.SOURCE, response.status_code, url)
+
+                data = response.json()
+                return self._parse_cotizacion(data, tipo)
+
+            except httpx.TimeoutException:
+                raise APITimeoutError(self.SOURCE, url)
+            except httpx.RequestError as e:
+                raise APIError(
+                    f"Error de conexión: {e}",
+                    source=self.SOURCE,
+                    url=url,
+                )
 
     async def obtener_todas(self) -> list[Cotizacion]:
         """
-        Obtiene todas las cotizaciones disponibles.
+        Obtiene todas las cotizaciones de dólar.
 
         Returns:
             Lista de cotizaciones
-        """
-        cotizaciones = []
-
-        for tipo in self.TIPO_MAP.keys():
-            try:
-                cot = await self.obtener_dolar(tipo)
-                cotizaciones.append(cot)
-            except (ValueError, ConnectionError):
-                # Skip si falla alguna cotización individual
-                continue
-
-        return cotizaciones
-
-    async def obtener_riesgo_pais(self) -> int:
-        """
-        Obtiene el riesgo país de Argentina.
-
-        Returns:
-            Valor del riesgo país en puntos
 
         Raises:
-            ConnectionError: Si falla la API
+            APIError: Si hay error en la API
         """
-        url = f"{self.BASE_URL}/ambito/riesgo-pais"
+        url = f"{self.BASE_URL}/dolares"
 
-        try:
-            client = self._get_client()
-            response = await client.get(url)
-            response.raise_for_status()
-            data = response.json()
-            return int(data.get("valor", 0))
-        except httpx.TimeoutException as e:
-            raise ConnectionError(f"Timeout al consultar riesgo país: {e}") from e
-        except httpx.HTTPError as e:
-            raise ConnectionError(f"Error al consultar riesgo país: {e}") from e
+        with LogContext(logger, "obtener_todas"):
+            try:
+                client = self._get_client()
+                response = await client.get(url)
+
+                if response.status_code != 200:
+                    raise handle_http_error(self.SOURCE, response.status_code, url)
+
+                data = response.json()
+                if not data:
+                    raise NoDataError("cotizaciones", self.SOURCE)
+
+                return [
+                    self._parse_cotizacion(item, item.get("nombre", "unknown")) for item in data
+                ]
+
+            except httpx.TimeoutException:
+                raise APITimeoutError(self.SOURCE, url)
+            except httpx.RequestError as e:
+                raise APIError(
+                    f"Error de conexión: {e}",
+                    source=self.SOURCE,
+                    url=url,
+                )
 
     def _parse_cotizacion(self, data: dict, tipo: str) -> Cotizacion:
-        """
-        Parsea JSON de dolarapi a entidad Cotizacion.
-
-        Args:
-            data: JSON response de la API
-            tipo: Tipo de dólar consultado
-
-        Returns:
-            Entidad Cotizacion
-        """
-        # Capitalizar nombre para display
-        nombre = tipo.upper() if tipo in ("mep", "ccl") else tipo.capitalize()
-
+        """Parsea respuesta JSON a Cotizacion."""
         return Cotizacion(
-            nombre=nombre,
-            compra=Precio(valor=Decimal(str(data["compra"])), moneda="ARS"),
-            venta=Precio(valor=Decimal(str(data["venta"])), moneda="ARS"),
-            fecha_actualizacion=Fecha.desde_iso(data["fechaActualizacion"]),
-            casa="dolarapi",
+            nombre=data.get("nombre", tipo.capitalize()),
+            compra=Precio(
+                valor=Decimal(str(data.get("compra", 0))),
+                moneda="ARS",
+            ),
+            venta=Precio(
+                valor=Decimal(str(data.get("venta", 0))),
+                moneda="ARS",
+            ),
+            fecha_actualizacion=Fecha.desde_iso(
+                data.get("fechaActualizacion", "").replace("Z", "+00:00")
+            ),
+            casa=data.get("casa", self.SOURCE),
         )
 
     async def close(self) -> None:

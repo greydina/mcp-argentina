@@ -123,6 +123,33 @@ def mock_dolar_responses(httpx_mock: HTTPXMock):
             {"fecha": "2026-02-28", "valor": 2.9},
         ],
     )
+    # Todas las cotizaciones (para get_cotizaciones)
+    httpx_mock.add_response(
+        url="https://dolarapi.com/v1/dolares",
+        json=[
+            {
+                "nombre": "Blue",
+                "compra": 1350.0,
+                "venta": 1400.0,
+                "fechaActualizacion": "2026-03-29T12:00:00-03:00",
+                "casa": "dolarapi",
+            },
+            {
+                "nombre": "Oficial",
+                "compra": 900.0,
+                "venta": 950.0,
+                "fechaActualizacion": "2026-03-29T12:00:00-03:00",
+                "casa": "dolarapi",
+            },
+            {
+                "nombre": "Bolsa",
+                "compra": 1320.0,
+                "venta": 1350.0,
+                "fechaActualizacion": "2026-03-29T12:00:00-03:00",
+                "casa": "dolarapi",
+            },
+        ],
+    )
     return httpx_mock
 
 

@@ -111,10 +111,15 @@ mcp_argentina/
 
 ## Data Sources
 
-| Fuente | Datos |
-|--------|-------|
-| [dolarapi.com](https://dolarapi.com) | Cotizaciones dólar en tiempo real |
-| [argentinadatos.com](https://argentinadatos.com) | Históricos, inflación, riesgo país |
+100% APIs públicas, cero scraping.
+
+| Fuente | Endpoint | Datos |
+|--------|----------|-------|
+| [dolarapi.com](https://dolarapi.com) | `/v1/dolares/{tipo}` | Cotizaciones tiempo real (blue, oficial, mep, ccl, cripto, tarjeta, mayorista) |
+| [dolarapi.com](https://dolarapi.com) | `/v1/cotizaciones/{moneda}` | Monedas extranjeras (EUR, BRL, UYU, etc.) |
+| [argentinadatos.com](https://argentinadatos.com) | `/v1/cotizaciones/dolares/{tipo}` | Histórico de cotizaciones (30+ días) |
+| [argentinadatos.com](https://argentinadatos.com) | `/v1/finanzas/indices/inflacion` | Inflación mensual INDEC |
+| [argentinadatos.com](https://argentinadatos.com) | `/v1/finanzas/indices/riesgo-pais/ultimo` | Riesgo país (EMBI) |
 
 ## Development
 

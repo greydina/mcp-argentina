@@ -1,16 +1,32 @@
 """Port para repositorio de cotizaciones."""
 
 from abc import ABC, abstractmethod
+from typing import Protocol
 
 from mcp_argentina.domain.entities.cotizacion import Cotizacion
 
 
+class DolarRepository(Protocol):
+    """
+    Protocolo para obtener cotizaciones de dólar.
+
+    Define el contrato que deben implementar los adapters de datos.
+    """
+
+    async def obtener_dolar(self, tipo: str) -> Cotizacion:
+        """Obtiene cotización de un tipo de dólar específico."""
+        ...
+
+    async def obtener_todas(self) -> list[Cotizacion]:
+        """Obtiene todas las cotizaciones de dólar disponibles."""
+        ...
+
+
 class CotizacionRepository(ABC):
     """
-    Interfaz para obtener cotizaciones de divisas e indicadores.
+    Interfaz completa para obtener cotizaciones e indicadores.
 
-    Define el contrato que deben implementar los adapters de datos,
-    permitiendo cambiar la fuente de datos sin modificar la lógica de negocio.
+    Define el contrato completo incluyendo riesgo país.
     """
 
     @abstractmethod
