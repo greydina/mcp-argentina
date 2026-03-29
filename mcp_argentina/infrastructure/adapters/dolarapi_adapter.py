@@ -15,15 +15,15 @@ from mcp_argentina.domain.value_objects.precio import Precio
 class DolarAPIAdapter(CotizacionRepository):
     """
     Implementación del repositorio usando dolarapi.com.
-    
+
     API gratuita y sin autenticación que provee cotizaciones
     del dólar en Argentina en tiempo real.
-    
+
     Endpoints utilizados:
         - GET /v1/dolares/{tipo} - Cotización específica
         - GET /v1/dolares - Todas las cotizaciones
         - GET /v1/ambito/riesgo-pais - Riesgo país
-    
+
     Example:
         >>> async with DolarAPIAdapter() as adapter:
         ...     blue = await adapter.obtener_dolar("blue")
@@ -31,7 +31,7 @@ class DolarAPIAdapter(CotizacionRepository):
     """
 
     BASE_URL = "https://dolarapi.com/v1"
-    
+
     # Mapeo de tipos internos a endpoints de la API
     TIPO_MAP = {
         "oficial": "oficial",
@@ -73,19 +73,19 @@ class DolarAPIAdapter(CotizacionRepository):
     async def obtener_dolar(self, tipo: str) -> Cotizacion:
         """
         Obtiene cotización de dólar específico.
-        
+
         Args:
             tipo: Tipo de dólar (oficial, blue, mep, ccl, tarjeta, cripto)
-        
+
         Returns:
             Cotizacion con datos actualizados
-        
+
         Raises:
             ValueError: Si el tipo no es válido
             ConnectionError: Si falla la API
         """
         tipo_lower = tipo.lower()
-        
+
         if tipo_lower not in self.TIPO_MAP:
             raise ValueError(
                 f"Tipo '{tipo}' no válido. Opciones: {', '.join(self.TIPO_MAP.keys())}"
@@ -111,7 +111,7 @@ class DolarAPIAdapter(CotizacionRepository):
     async def obtener_todas(self) -> list[Cotizacion]:
         """
         Obtiene todas las cotizaciones disponibles.
-        
+
         Returns:
             Lista de cotizaciones
         """
@@ -130,15 +130,15 @@ class DolarAPIAdapter(CotizacionRepository):
     async def obtener_riesgo_pais(self) -> int:
         """
         Obtiene el riesgo país de Argentina.
-        
+
         Returns:
             Valor del riesgo país en puntos
-        
+
         Raises:
             ConnectionError: Si falla la API
         """
         url = f"{self.BASE_URL}/ambito/riesgo-pais"
-        
+
         try:
             client = self._get_client()
             response = await client.get(url)
@@ -153,17 +153,17 @@ class DolarAPIAdapter(CotizacionRepository):
     def _parse_cotizacion(self, data: dict, tipo: str) -> Cotizacion:
         """
         Parsea JSON de dolarapi a entidad Cotizacion.
-        
+
         Args:
             data: JSON response de la API
             tipo: Tipo de dólar consultado
-        
+
         Returns:
             Entidad Cotizacion
         """
         # Capitalizar nombre para display
         nombre = tipo.upper() if tipo in ("mep", "ccl") else tipo.capitalize()
-        
+
         return Cotizacion(
             nombre=nombre,
             compra=Precio(valor=Decimal(str(data["compra"])), moneda="ARS"),

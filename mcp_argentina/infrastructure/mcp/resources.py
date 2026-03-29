@@ -8,15 +8,16 @@ NOTA: Mantenido para compatibilidad con tests existentes.
 """
 
 from typing import Any
+
 import httpx
 
 
 async def get_cotizaciones_actual() -> dict[str, Any]:
     """
     Resource: economia://cotizaciones/actual
-    
+
     Proporciona un snapshot de todas las cotizaciones actuales.
-    
+
     Returns:
         Diccionario con:
         - timestamp: momento de consulta
@@ -46,7 +47,7 @@ async def get_cotizaciones_actual() -> dict[str, Any]:
             resumen["dolar_blue"] = cotizaciones["blue"]["venta"]
         if "oficial" in cotizaciones:
             resumen["dolar_oficial"] = cotizaciones["oficial"]["venta"]
-        
+
         # Calcular brecha cambiaria
         if "dolar_blue" in resumen and "dolar_oficial" in resumen:
             oficial = resumen["dolar_oficial"]
@@ -65,14 +66,14 @@ async def get_cotizaciones_actual() -> dict[str, Any]:
 async def get_indicadores_resumen() -> dict[str, Any]:
     """
     Resource: economia://indicadores/resumen
-    
+
     Proporciona un resumen de indicadores económicos clave.
-    
+
     Returns:
         Diccionario con indicadores principales y metadata.
     """
     cotizaciones_data = await get_cotizaciones_actual()
-    
+
     return {
         "timestamp": cotizaciones_data["timestamp"],
         "indicadores": {
@@ -89,9 +90,9 @@ async def get_indicadores_resumen() -> dict[str, Any]:
 async def get_riesgo_pais() -> dict[str, Any]:
     """
     Resource: economia://riesgo-pais
-    
+
     Proporciona el riesgo país actual de Argentina.
-    
+
     Returns:
         Diccionario con valor y metadata.
     """
@@ -99,7 +100,7 @@ async def get_riesgo_pais() -> dict[str, Any]:
         response = await client.get("https://dolarapi.com/v1/ambito/riesgo-pais")
         response.raise_for_status()
         data = response.json()
-        
+
         return {
             "valor": data.get("valor"),
             "fecha": data.get("fecha"),

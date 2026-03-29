@@ -1,9 +1,8 @@
 """Value object para fechas con timezone Argentina."""
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from zoneinfo import ZoneInfo
-
 
 ARGENTINA_TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 
@@ -18,9 +17,7 @@ class Fecha:
         """Asegura que tenga timezone."""
         if self.valor.tzinfo is None:
             # Si no tiene TZ, asume Argentina
-            object.__setattr__(
-                self, "valor", self.valor.replace(tzinfo=ARGENTINA_TZ)
-            )
+            object.__setattr__(self, "valor", self.valor.replace(tzinfo=ARGENTINA_TZ))
 
     @classmethod
     def ahora(cls) -> "Fecha":

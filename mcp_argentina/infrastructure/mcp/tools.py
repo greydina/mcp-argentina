@@ -9,8 +9,9 @@ La implementación principal está en server.py usando el SDK MCP.
 """
 
 from typing import Any
-from pydantic import BaseModel, Field, field_validator
 
+import httpx
+from pydantic import BaseModel, Field, field_validator
 
 # ============================================================================
 # INPUT SCHEMAS
@@ -20,10 +21,11 @@ from pydantic import BaseModel, Field, field_validator
 class GetDolarInput(BaseModel):
     """
     Schema de validación para get_dolar tool.
-    
+
     Attributes:
         tipo: Tipo de dólar a consultar
     """
+
     tipo: str = Field(
         description="Tipo de dólar: 'blue', 'oficial', 'mep', 'ccl', 'cripto', 'tarjeta'"
     )
@@ -34,28 +36,25 @@ class GetDolarInput(BaseModel):
         """Valida que el tipo de dólar sea válido."""
         tipos_validos = ["blue", "oficial", "mep", "ccl", "cripto", "tarjeta", "mayorista"]
         if v.lower() not in tipos_validos:
-            raise ValueError(
-                f"Tipo de dólar inválido. Tipos válidos: {', '.join(tipos_validos)}"
-            )
+            raise ValueError(f"Tipo de dólar inválido. Tipos válidos: {', '.join(tipos_validos)}")
         return v.lower()
 
 
 class ConvertirInput(BaseModel):
     """
     Schema de validación para convertir tool.
-    
+
     Attributes:
         monto: Cantidad a convertir
         de: Moneda origen
         a: Moneda destino
         tipo_cambio: Tipo de cambio a usar
     """
+
     monto: float = Field(description="Monto a convertir", gt=0)
     de: str = Field(description="Moneda origen: 'ARS' o 'USD'")
     a: str = Field(description="Moneda destino: 'ARS' o 'USD'")
-    tipo_cambio: str = Field(
-        description="Tipo de cambio a usar: 'blue', 'oficial', 'mep', 'ccl'"
-    )
+    tipo_cambio: str = Field(description="Tipo de cambio a usar: 'blue', 'oficial', 'mep', 'ccl'")
 
     @field_validator("de", "a")
     @classmethod
@@ -71,9 +70,7 @@ class ConvertirInput(BaseModel):
         """Valida que el tipo de cambio sea válido."""
         tipos_validos = ["blue", "oficial", "mep", "ccl"]
         if v.lower() not in tipos_validos:
-            raise ValueError(
-                f"Tipo de cambio inválido. Tipos válidos: {', '.join(tipos_validos)}"
-            )
+            raise ValueError(f"Tipo de cambio inválido. Tipos válidos: {', '.join(tipos_validos)}")
         return v.lower()
 
 
@@ -81,13 +78,11 @@ class ConvertirInput(BaseModel):
 # FUNCIONES LEGACY (para compatibilidad con tests)
 # ============================================================================
 
-import httpx
-
 
 async def get_dolar(tipo: str) -> dict[str, Any]:
     """
     Obtiene la cotización actual de un tipo específico de dólar.
-    
+
     DEPRECATED: Usar server.py call_tool() en su lugar.
     Se mantiene para compatibilidad con tests existentes.
     """
@@ -108,7 +103,7 @@ async def get_dolar(tipo: str) -> dict[str, Any]:
 async def get_cotizaciones() -> dict[str, Any]:
     """
     Obtiene todas las cotizaciones de dólar disponibles.
-    
+
     DEPRECATED: Usar server.py call_tool() en su lugar.
     """
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -130,12 +125,10 @@ async def get_cotizaciones() -> dict[str, Any]:
         return cotizaciones
 
 
-async def convertir(
-    monto: float, de: str, a: str, tipo_cambio: str
-) -> dict[str, Any]:
+async def convertir(monto: float, de: str, a: str, tipo_cambio: str) -> dict[str, Any]:
     """
     Convierte un monto entre ARS y USD.
-    
+
     DEPRECATED: Usar server.py call_tool() en su lugar.
     """
     if de == a:

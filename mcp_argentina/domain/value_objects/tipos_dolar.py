@@ -135,8 +135,7 @@ class TipoDolar(str, Enum):
         except ValueError:
             tipos_validos = ", ".join(t.value for t in cls)
             raise ValueError(
-                f"Tipo de dólar desconocido: '{valor}'. "
-                f"Tipos válidos: {tipos_validos}"
+                f"Tipo de dólar desconocido: '{valor}'. Tipos válidos: {tipos_validos}"
             ) from None
 
     def __str__(self) -> str:

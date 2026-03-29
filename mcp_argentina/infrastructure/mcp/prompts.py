@@ -11,10 +11,10 @@ from typing import Any
 def get_analisis_economico_prompt() -> dict[str, Any]:
     """
     Prompt: analisis_economico
-    
+
     Template para realizar un análisis completo de la situación
     económica argentina basado en cotizaciones y datos disponibles.
-    
+
     Returns:
         Definición del prompt con estructura y template.
     """
@@ -69,10 +69,10 @@ def get_analisis_economico_prompt() -> dict[str, Any]:
 def get_comparar_dolares_prompt() -> dict[str, Any]:
     """
     Prompt: comparar_dolares
-    
+
     Template para comparar diferentes tipos de cambio
     y explicar sus diferencias y usos.
-    
+
     Returns:
         Definición del prompt con estructura de comparación.
     """
