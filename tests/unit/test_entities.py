@@ -20,14 +20,14 @@ class TestCotizacion:
         fecha = Fecha.ahora()
         cotizacion = Cotizacion(
             nombre="Blue",
-            compra=Precio(monto=Decimal("950"), moneda="ARS"),
-            venta=Precio(monto=Decimal("970"), moneda="ARS"),
+            compra=Precio(valor=Decimal("950"), moneda="ARS"),
+            venta=Precio(valor=Decimal("970"), moneda="ARS"),
             fecha_actualizacion=fecha,
         )
 
         assert cotizacion.nombre == "Blue"
-        assert cotizacion.compra.monto == Decimal("950")
-        assert cotizacion.venta.monto == Decimal("970")
+        assert cotizacion.compra.valor == Decimal("950")
+        assert cotizacion.venta.valor == Decimal("970")
 
     def test_compra_mayor_que_venta_falla(self) -> None:
         """No debe permitir compra > venta."""
@@ -35,8 +35,8 @@ class TestCotizacion:
         with pytest.raises(ValueError, match="no puede ser mayor"):
             Cotizacion(
                 nombre="Blue",
-                compra=Precio(monto=Decimal("1000"), moneda="ARS"),
-                venta=Precio(monto=Decimal("900"), moneda="ARS"),
+                compra=Precio(valor=Decimal("1000"), moneda="ARS"),
+                venta=Precio(valor=Decimal("900"), moneda="ARS"),
                 fecha_actualizacion=fecha,
             )
 
@@ -45,8 +45,8 @@ class TestCotizacion:
         fecha = Fecha.ahora()
         cotizacion = Cotizacion(
             nombre="Blue",
-            compra=Precio(monto=Decimal("950"), moneda="ARS"),
-            venta=Precio(monto=Decimal("970"), moneda="ARS"),
+            compra=Precio(valor=Decimal("950"), moneda="ARS"),
+            venta=Precio(valor=Decimal("970"), moneda="ARS"),
             fecha_actualizacion=fecha,
         )
 
@@ -57,8 +57,8 @@ class TestCotizacion:
         fecha = Fecha.ahora()
         cotizacion = Cotizacion(
             nombre="Blue",
-            compra=Precio(monto=Decimal("950"), moneda="ARS"),
-            venta=Precio(monto=Decimal("970"), moneda="ARS"),
+            compra=Precio(valor=Decimal("950"), moneda="ARS"),
+            venta=Precio(valor=Decimal("970"), moneda="ARS"),
             fecha_actualizacion=fecha,
         )
 
@@ -69,8 +69,8 @@ class TestCotizacion:
         fecha = Fecha.ahora()
         cotizacion = Cotizacion(
             nombre="Blue",
-            compra=Precio(monto=Decimal("950"), moneda="ARS"),
-            venta=Precio(monto=Decimal("970"), moneda="ARS"),
+            compra=Precio(valor=Decimal("950"), moneda="ARS"),
+            venta=Precio(valor=Decimal("970"), moneda="ARS"),
             fecha_actualizacion=fecha,
         )
 
@@ -82,8 +82,8 @@ class TestCotizacion:
         fecha = Fecha(dt_antiguo)
         cotizacion = Cotizacion(
             nombre="Blue",
-            compra=Precio(monto=Decimal("950"), moneda="ARS"),
-            venta=Precio(monto=Decimal("970"), moneda="ARS"),
+            compra=Precio(valor=Decimal("950"), moneda="ARS"),
+            venta=Precio(valor=Decimal("970"), moneda="ARS"),
             fecha_actualizacion=fecha,
         )
 
@@ -94,8 +94,8 @@ class TestCotizacion:
         fecha = Fecha.ahora()
         cotizacion = Cotizacion(
             nombre="Blue",
-            compra=Precio(monto=Decimal("950"), moneda="ARS"),
-            venta=Precio(monto=Decimal("970"), moneda="ARS"),
+            compra=Precio(valor=Decimal("950"), moneda="ARS"),
+            venta=Precio(valor=Decimal("970"), moneda="ARS"),
             fecha_actualizacion=fecha,
         )
 

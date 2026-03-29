@@ -19,18 +19,18 @@ class Cotizacion:
 
     def __post_init__(self) -> None:
         """Validaciones."""
-        if self.compra.monto > self.venta.monto:
+        if self.compra.valor > self.venta.valor:
             raise ValueError("El precio de compra no puede ser mayor que el de venta")
 
     @property
     def spread(self) -> Decimal:
         """Diferencia entre venta y compra."""
-        return self.venta.monto - self.compra.monto
+        return self.venta.valor - self.compra.valor
 
     @property
     def promedio(self) -> Decimal:
         """Precio promedio."""
-        return (self.compra.monto + self.venta.monto) / 2
+        return (self.compra.valor + self.venta.valor) / 2
 
     def esta_actualizada(self, max_minutos: int = 5) -> bool:
         """Verifica si la cotización está actualizada."""

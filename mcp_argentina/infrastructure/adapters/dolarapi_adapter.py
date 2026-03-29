@@ -63,7 +63,7 @@ class DolarAPIAdapter(CotizacionRepository):
                 cot = await self.obtener_dolar(tipo)
                 cotizaciones.append(cot)
             except (ValueError, ConnectionError):
-                # Skip si falla alguna cotización
+                # Skip si falla alguna cotizacion
                 continue
 
         return cotizaciones
@@ -72,8 +72,8 @@ class DolarAPIAdapter(CotizacionRepository):
         """Parsea JSON de dolarapi a Cotizacion."""
         return Cotizacion(
             nombre=tipo.capitalize(),
-            compra=Precio(monto=Decimal(str(data["compra"])), moneda="ARS"),
-            venta=Precio(monto=Decimal(str(data["venta"])), moneda="ARS"),
+            compra=Precio(valor=Decimal(str(data["compra"])), moneda="ARS"),
+            venta=Precio(valor=Decimal(str(data["venta"])), moneda="ARS"),
             fecha_actualizacion=Fecha.desde_iso(data["fechaActualizacion"]),
             casa="dolarapi",
         )

@@ -18,13 +18,13 @@ from mcp_argentina.infrastructure.adapters.dolarapi_adapter import DolarAPIAdapt
 @pytest.fixture
 def precio_ars() -> Precio:
     """Fixture de precio en ARS."""
-    return Precio(monto=Decimal("1000.50"), moneda="ARS")
+    return Precio(valor=Decimal("1000.50"), moneda="ARS")
 
 
 @pytest.fixture
 def precio_usd() -> Precio:
     """Fixture de precio en USD."""
-    return Precio(monto=Decimal("10.25"), moneda="USD")
+    return Precio(valor=Decimal("10.25"), moneda="USD")
 
 
 @pytest.fixture
@@ -45,8 +45,8 @@ def cotizacion_blue(fecha_actual: Fecha) -> Cotizacion:
     """Fixture de cotización dólar blue."""
     return Cotizacion(
         nombre="Blue",
-        compra=Precio(monto=Decimal("950.00"), moneda="ARS"),
-        venta=Precio(monto=Decimal("970.00"), moneda="ARS"),
+        compra=Precio(valor=Decimal("950.00"), moneda="ARS"),
+        venta=Precio(valor=Decimal("970.00"), moneda="ARS"),
         fecha_actualizacion=fecha_actual,
         casa="dolarapi",
     )
@@ -57,8 +57,8 @@ def cotizacion_oficial(fecha_actual: Fecha) -> Cotizacion:
     """Fixture de cotización dólar oficial."""
     return Cotizacion(
         nombre="Oficial",
-        compra=Precio(monto=Decimal("800.00"), moneda="ARS"),
-        venta=Precio(monto=Decimal("810.00"), moneda="ARS"),
+        compra=Precio(valor=Decimal("800.00"), moneda="ARS"),
+        venta=Precio(valor=Decimal("810.00"), moneda="ARS"),
         fecha_actualizacion=fecha_actual,
         casa="dolarapi",
     )

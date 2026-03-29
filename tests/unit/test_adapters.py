@@ -26,8 +26,8 @@ class TestDolarAPIAdapter:
         cotizacion = await adapter.obtener_dolar("blue")
 
         assert cotizacion.nombre == "Blue"
-        assert cotizacion.compra.monto == Decimal("950.0")
-        assert cotizacion.venta.monto == Decimal("970.0")
+        assert cotizacion.compra.valor == Decimal("950.0")
+        assert cotizacion.venta.valor == Decimal("970.0")
         assert cotizacion.casa == "dolarapi"
 
         await adapter.close()
@@ -46,8 +46,8 @@ class TestDolarAPIAdapter:
         cotizacion = await adapter.obtener_dolar("oficial")
 
         assert cotizacion.nombre == "Oficial"
-        assert cotizacion.compra.monto == Decimal("800.0")
-        assert cotizacion.venta.monto == Decimal("810.0")
+        assert cotizacion.compra.valor == Decimal("800.0")
+        assert cotizacion.venta.valor == Decimal("810.0")
 
         await adapter.close()
 
@@ -229,7 +229,7 @@ class TestDolarAPIAdapter:
         adapter = DolarAPIAdapter()
         cotizacion = await adapter.obtener_dolar("blue")
 
-        assert cotizacion.compra.monto == Decimal("950.75")
-        assert cotizacion.venta.monto == Decimal("970.25")
+        assert cotizacion.compra.valor == Decimal("950.75")
+        assert cotizacion.venta.valor == Decimal("970.25")
 
         await adapter.close()

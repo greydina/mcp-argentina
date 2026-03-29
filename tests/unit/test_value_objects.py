@@ -4,6 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
+from pydantic import ValidationError
 
 from mcp_argentina.domain.value_objects.fecha import ARGENTINA_TZ, Fecha
 from mcp_argentina.domain.value_objects.precio import Precio
@@ -14,51 +15,71 @@ class TestPrecio:
 
     def test_crear_precio_valido(self) -> None:
         """Debe crear un precio válido."""
-        precio = Precio(monto=Decimal("1000.50"), moneda="ARS")
-        assert precio.monto == Decimal("1000.50")
+        precio = Precio(valor=Decimal("1000.50"), moneda="ARS")
+        assert precio.valor == Decimal("1000.50")
         assert precio.moneda == "ARS"
 
     def test_precio_negativo_falla(self) -> None:
         """No debe permitir precios negativos."""
-        with pytest.raises(ValueError, match="no puede ser negativo"):
-            Precio(monto=Decimal("-100"), moneda="ARS")
+        with pytest.raises(ValidationError, match="no puede ser negativo"):
+            Precio(valor=Decimal("-100"), moneda="ARS")
 
-    def test_moneda_invalida_falla(self) -> None:
-        """No debe permitir monedas no soportadas."""
-        with pytest.raises(ValueError, match="Moneda no soportada"):
-            Precio(monto=Decimal("100"), moneda="EUR")
+    def test_moneda_minuscula_se_convierte(self) -> None:
+        """Debe convertir moneda a mayúsculas."""
+        precio = Precio(valor=Decimal("100"), moneda="ars")
+        assert precio.moneda == "ARS"
 
     def test_str_formatea_correctamente(self) -> None:
         """Debe formatear el string correctamente."""
-        precio = Precio(monto=Decimal("1234.56"), moneda="ARS")
-        assert str(precio) == "ARS 1234.56"
+        precio = Precio(valor=Decimal("1234.56"), moneda="ARS")
+        assert str(precio) == "1234.56 ARS"
 
-    def test_convertir_a_usd(self) -> None:
-        """Debe convertir ARS a USD correctamente."""
-        precio_ars = Precio(monto=Decimal("1000"), moneda="ARS")
-        tasa = Decimal("950")
-        precio_usd = precio_ars.convertir_a_usd(tasa)
+    def test_suma_precios_misma_moneda(self) -> None:
+        """Debe sumar precios de la misma moneda."""
+        precio1 = Precio(valor=Decimal("100"), moneda="ARS")
+        precio2 = Precio(valor=Decimal("200"), moneda="ARS")
+        resultado = precio1 + precio2
+        assert resultado.valor == Decimal("300")
+        assert resultado.moneda == "ARS"
 
-        assert precio_usd.moneda == "USD"
-        assert precio_usd.monto == Decimal("1000") / Decimal("950")
+    def test_suma_precios_diferentes_monedas_falla(self) -> None:
+        """No debe sumar precios de monedas diferentes."""
+        precio_ars = Precio(valor=Decimal("100"), moneda="ARS")
+        precio_usd = Precio(valor=Decimal("10"), moneda="USD")
+        with pytest.raises(ValueError, match="monedas diferentes"):
+            precio_ars + precio_usd
 
-    def test_convertir_desde_usd_falla(self) -> None:
-        """No debe convertir desde USD."""
-        precio_usd = Precio(monto=Decimal("100"), moneda="USD")
-        with pytest.raises(ValueError, match="Solo se puede convertir desde ARS"):
-            precio_usd.convertir_a_usd(Decimal("950"))
+    def test_resta_precios(self) -> None:
+        """Debe restar precios."""
+        precio1 = Precio(valor=Decimal("200"), moneda="ARS")
+        precio2 = Precio(valor=Decimal("100"), moneda="ARS")
+        resultado = precio1 - precio2
+        assert resultado.valor == Decimal("100")
 
-    def test_convertir_con_tasa_negativa_falla(self) -> None:
-        """No debe aceptar tasas negativas."""
-        precio = Precio(monto=Decimal("1000"), moneda="ARS")
-        with pytest.raises(ValueError, match="debe ser positiva"):
-            precio.convertir_a_usd(Decimal("-950"))
+    def test_multiplicacion_por_factor(self) -> None:
+        """Debe multiplicar por un factor."""
+        precio = Precio(valor=Decimal("100"), moneda="ARS")
+        resultado = precio * 2
+        assert resultado.valor == Decimal("200")
+
+    def test_division_por_divisor(self) -> None:
+        """Debe dividir por un divisor."""
+        precio = Precio(valor=Decimal("100"), moneda="ARS")
+        resultado = precio / 2
+        assert resultado.valor == Decimal("50")
+
+    def test_comparacion_precios(self) -> None:
+        """Debe comparar precios correctamente."""
+        precio1 = Precio(valor=Decimal("100"), moneda="ARS")
+        precio2 = Precio(valor=Decimal("200"), moneda="ARS")
+        assert precio1 < precio2
+        assert precio2 > precio1
 
     def test_precio_es_inmutable(self) -> None:
-        """Precio debe ser inmutable (frozen dataclass)."""
-        precio = Precio(monto=Decimal("1000"), moneda="ARS")
-        with pytest.raises(AttributeError):
-            precio.monto = Decimal("2000")  # type: ignore
+        """Precio debe ser inmutable (frozen pydantic)."""
+        precio = Precio(valor=Decimal("1000"), moneda="ARS")
+        with pytest.raises(ValidationError):
+            precio.valor = Decimal("2000")  # type: ignore
 
 
 class TestFecha:
