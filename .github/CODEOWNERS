@@ -1,0 +1,10 @@
+# Code owners for mcp-argentina
+# These users will be automatically requested for review
+
+# Default owners for everything
+* @greydina/maintainers
+
+# Critical paths require extra review
+/.github/ @greydina/maintainers
+/mcp_argentina/infrastructure/mcp/ @greydina/maintainers
+pyproject.toml @greydina/maintainers
