@@ -1,14 +1,14 @@
 """Tests para MCP Server."""
 
 import pytest
-from mcp_argentina.infrastructure.mcp.server import (
-    server,
-    list_tools,
-    list_resources,
-    list_prompts,
-    get_container,
-)
+
 from mcp_argentina.infrastructure.container import Container
+from mcp_argentina.infrastructure.mcp.server import (
+    get_container,
+    list_prompts,
+    list_resources,
+    list_tools,
+)
 
 
 class TestMCPServerTools:

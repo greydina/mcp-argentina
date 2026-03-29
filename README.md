@@ -1,109 +1,167 @@
-# MCP Argentina
+# MCP Argentina 🇦🇷
 
 Servidor Model Context Protocol (MCP) para datos económicos de Argentina en tiempo real.
 
 ## Features
 
-- 🇦🇷 Cotizaciones del dólar (oficial, blue, MEP, CCL, tarjeta, cripto)
-- 📊 Indicadores económicos (inflación, riesgo país)
-- 🔄 Datos en tiempo real desde fuentes oficiales
-- 🧪 Test coverage 85%+
-- 🔒 Type-safe (mypy strict)
-- 🐍 Python 3.11+
+- 💵 **Cotizaciones dólar**: Oficial, Blue, MEP, CCL, Tarjeta, Cripto, Mayorista
+- 📈 **Históricos**: 30+ días de evolución de cotizaciones
+- 📊 **Inflación**: Mensual, interanual y acumulada (INDEC)
+- 🌡️ **Riesgo país**: Índice EMBI en tiempo real
+- 💱 **Monedas**: EUR, BRL, UYU, CLP y 10+ monedas extranjeras
+- 🔔 **Alertas**: Monitoreo de umbrales de precio
+- 📉 **Gráficos**: Visualización ASCII de tendencias
+- 🔄 **Conversiones**: ARS ↔ USD con cualquier tipo de cambio
 
 ## Instalación
 
 ```bash
-# Clonar repo
-git clone https://github.com/usuario/mcp-argentina.git
-cd mcp-argentina
+pip install mcp-argentina
+```
 
-# Instalar dependencias
+O desde source:
+
+```bash
+git clone https://github.com/greydina/mcp-argentina.git
+cd mcp-argentina
 pip install -e ".[dev]"
 ```
 
-## Uso
+## Quick Start
+
+### Como servidor MCP
+
+```bash
+# Ejecutar servidor stdio
+python -m mcp_argentina
+```
+
+### Uso directo (sin MCP)
 
 ```python
-from mcp_argentina.infrastructure.mcp.server import MCPArgentinaServer
+import asyncio
+from mcp_argentina.infrastructure.container import Container
 
-server = MCPArgentinaServer()
+async def main():
+    c = Container()
+    
+    # Dólar blue
+    blue = await c.repository.obtener_dolar("blue")
+    print(f"Blue: ${blue.venta.valor:,.0f}")
+    
+    # Inflación
+    inf = await c.inflacion.obtener_actual()
+    print(f"Inflación interanual: {inf.interanual:.1f}%")
+    
+    # Riesgo país
+    riesgo = await c.repository.obtener_riesgo_pais()
+    print(f"Riesgo país: {riesgo}")
 
-# Obtener dólar blue
-cotizacion = await server.get_dolar("blue")
-print(f"Blue: ${cotizacion['venta']}")
-
-# Obtener todas las cotizaciones
-todas = await server.get_cotizaciones()
-print(f"Total cotizaciones: {todas['total']}")
-
-await server.close()
+asyncio.run(main())
 ```
 
-## Testing
+## MCP Tools
 
-```bash
-# Tests unitarios (rápidos)
-pytest -m unit
+| Tool | Descripción |
+|------|-------------|
+| `get_dolar` | Cotización de un tipo de dólar específico |
+| `get_cotizaciones` | Todas las cotizaciones de dólar |
+| `get_historico` | Histórico de cotizaciones (30+ días) |
+| `get_inflacion` | Inflación mensual, interanual, acumulada |
+| `get_riesgo_pais` | Índice EMBI Argentina |
+| `get_moneda` | Cotización de moneda extranjera |
+| `get_todas_monedas` | Todas las monedas disponibles |
+| `get_variacion` | Variación porcentual en período |
+| `get_grafico` | Gráfico ASCII de tendencia |
+| `convertir` | Conversión ARS ↔ USD |
 
-# Tests de integración (contra API real)
-pytest -m slow
+## MCP Resources
 
-# Tests E2E
-pytest -m e2e
+| URI | Descripción |
+|-----|-------------|
+| `economia://cotizaciones/actual` | Snapshot JSON de todas las cotizaciones |
+| `economia://indicadores/resumen` | Indicadores económicos clave |
+| `economia://inflacion/actual` | Datos de inflación actual |
 
-# Todos los tests con coverage
-pytest --cov=mcp_argentina --cov-report=html
+## MCP Prompts
 
-# Abrir reporte de coverage
-open htmlcov/index.html
-```
-
-## Desarrollo
-
-```bash
-# Linting
-ruff check .
-
-# Type checking
-mypy mcp_argentina
-
-# Formateo
-ruff format .
-```
+| Prompt | Descripción |
+|--------|-------------|
+| `analisis_economico` | Análisis de situación económica |
+| `comparar_dolares` | Comparación entre tipos de dólar |
 
 ## Arquitectura
 
 ```
 mcp_argentina/
-├── domain/              # Entidades y value objects
-├── application/         # Casos de uso y ports
-└── infrastructure/      # Adapters y MCP server
+├── domain/                    # Entidades y value objects
+│   ├── entities/              # Cotizacion, etc.
+│   └── value_objects/         # Precio, Fecha, TipoDolar
+│
+├── application/               # Lógica de negocio
+│   ├── ports/                 # Interfaces (Repository)
+│   └── services/              # AlertasService, GraficosService
+│
+└── infrastructure/            # Implementaciones
+    ├── adapters/              # DolarAPI, Historicos, Inflacion, Monedas
+    └── mcp/                   # Server, Tools, Resources, Prompts
 ```
 
-**Clean Architecture:** Dependencias apuntan hacia el dominio (centro). Infrastructure depende de application, application depende de domain.
+**Clean Architecture**: Dependencias apuntan hacia el dominio.
 
 ## Data Sources
 
-- **dolarapi.com** - Cotizaciones de dólar en tiempo real
-- **BCRA** - Indicadores económicos oficiales (próximamente)
+| Fuente | Datos |
+|--------|-------|
+| [dolarapi.com](https://dolarapi.com) | Cotizaciones dólar en tiempo real |
+| [argentinadatos.com](https://argentinadatos.com) | Históricos, inflación, riesgo país |
 
-## Licencia
+## Development
 
-MIT License
+```bash
+# Tests (sin slow/integration)
+pytest -m "not slow"
+
+# Tests con coverage
+pytest --cov=mcp_argentina --cov-report=html
+
+# Lint
+ruff check .
+
+# Type check
+mypy mcp_argentina
+
+# Format
+ruff format .
+```
+
+## Stats
+
+- ✅ 180 tests
+- ✅ 85% coverage
+- ✅ Python 3.10, 3.11, 3.12
+- ✅ Type-safe (mypy strict)
+- ✅ CI/CD GitHub Actions
 
 ## Roadmap
 
-- [x] Tests suite completa (85%+ coverage)
-- [ ] Tool `get_inflacion`
-- [ ] Tool `get_riesgo_pais`
-- [ ] Tool `convertir`
-- [ ] Resources MCP
-- [ ] Prompts MCP
+- [x] Cotizaciones dólar en tiempo real
+- [x] Históricos de cotizaciones
+- [x] Inflación (INDEC)
+- [x] Riesgo país
+- [x] Monedas extranjeras
+- [x] Alertas de precio
+- [x] Gráficos ASCII
+- [x] Conversiones
+- [ ] WebSocket para updates real-time
 - [ ] Publicar en PyPI
 - [ ] Publicar en ClawHub
 
+## License
+
+MIT
+
 ---
 
-_Creado por: OpenClaw Community_  
+_Creado por: [greydina](https://github.com/greydina)_  
 _Versión: 0.1.0_

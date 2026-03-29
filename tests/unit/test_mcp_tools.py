@@ -1,15 +1,16 @@
 """Tests para MCP tools."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from pydantic import ValidationError
 
 from mcp_argentina.infrastructure.mcp.tools import (
-    GetDolarInput,
     ConvertirInput,
-    get_dolar,
-    get_cotizaciones,
+    GetDolarInput,
     convertir,
+    get_cotizaciones,
+    get_dolar,
 )
 
 
@@ -100,7 +101,7 @@ class TestGetDolar:
             "venta": 1400.0,
             "fechaActualizacion": "2026-03-29T01:00:00.000Z",
         }
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_instance = AsyncMock()
             mock_client.return_value.__aenter__.return_value = mock_instance
@@ -108,9 +109,9 @@ class TestGetDolar:
                 status_code=200,
                 json=lambda: mock_response,
             )
-            
+
             result = await get_dolar("blue")
-        
+
         assert isinstance(result, dict)
         assert "tipo" in result or "casa" in result or "compra" in result
 
@@ -125,7 +126,7 @@ class TestGetCotizaciones:
             {"moneda": "USD", "casa": "blue", "compra": 1350, "venta": 1400},
             {"moneda": "USD", "casa": "oficial", "compra": 900, "venta": 950},
         ]
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_instance = AsyncMock()
             mock_client.return_value.__aenter__.return_value = mock_instance
@@ -133,9 +134,9 @@ class TestGetCotizaciones:
                 status_code=200,
                 json=lambda: mock_response,
             )
-            
+
             result = await get_cotizaciones()
-        
+
         assert isinstance(result, dict)
 
 
@@ -151,7 +152,7 @@ class TestConvertir:
             "compra": 1350.0,
             "venta": 1400.0,
         }
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_instance = AsyncMock()
             mock_client.return_value.__aenter__.return_value = mock_instance
@@ -159,13 +160,13 @@ class TestConvertir:
                 status_code=200,
                 json=lambda: mock_response,
             )
-            
+
             result = await convertir(
                 monto=14000,
                 de="ARS",
                 a="USD",
                 tipo_cambio="blue",
             )
-        
+
         assert isinstance(result, dict)
         assert "monto_convertido" in result or "moneda_destino" in result

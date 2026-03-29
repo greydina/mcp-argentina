@@ -59,7 +59,12 @@ class DolarAPIAdapter(CotizacionRepository):
             self._client = httpx.AsyncClient(timeout=10.0)
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> None:
         """Context manager exit."""
         if self._owns_client and self._client:
             await self._client.aclose()

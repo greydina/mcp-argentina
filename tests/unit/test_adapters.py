@@ -221,9 +221,7 @@ class TestDolarAPIAdapter:
             # No llamar adapter.close() porque el cliente es externo
 
     @pytest.mark.asyncio
-    async def test_parse_cotizacion_con_decimales(
-        self, httpx_mock: HTTPXMock
-    ) -> None:
+    async def test_parse_cotizacion_con_decimales(self, httpx_mock: HTTPXMock) -> None:
         """Debe parsear correctamente valores con decimales."""
         httpx_mock.add_response(
             url="https://dolarapi.com/v1/dolares/blue",

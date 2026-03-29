@@ -1,6 +1,5 @@
 """Tests para MCP prompts."""
 
-import pytest
 from mcp_argentina.infrastructure.mcp.prompts import (
     get_analisis_economico_prompt,
     get_comparar_dolares_prompt,
@@ -93,7 +92,7 @@ class TestPromptsCoherencia:
         """Ambos prompts deben tener la misma estructura."""
         analisis = get_analisis_economico_prompt()
         comparar = get_comparar_dolares_prompt()
-        
+
         for prompt in [analisis, comparar]:
             assert "name" in prompt
             assert "description" in prompt

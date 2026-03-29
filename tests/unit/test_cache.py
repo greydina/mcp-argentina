@@ -1,7 +1,9 @@
 """Tests para CacheAdapter."""
 
 import asyncio
+
 import pytest
+
 from mcp_argentina.infrastructure.adapters.cache_adapter import CacheAdapter
 
 

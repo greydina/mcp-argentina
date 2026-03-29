@@ -1,6 +1,7 @@
 """Tests para TipoDolar enum."""
 
 import pytest
+
 from mcp_argentina.domain.value_objects.tipos_dolar import TipoDolar
 
 

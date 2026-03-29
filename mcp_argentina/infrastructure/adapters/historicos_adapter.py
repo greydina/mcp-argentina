@@ -222,7 +222,7 @@ class HistoricosAdapter:
         self,
         tipo: str = "blue",
         dias: int = 7,
-    ) -> dict:
+    ) -> dict[str, str | float]:
         """
         Calcula la variación porcentual del dólar.
 

@@ -5,25 +5,26 @@ Estos tests verifican el flujo completo del servidor MCP,
 incluyendo la interacción real con la API de dolarapi.com.
 """
 
-import pytest
-from pytest_httpx import HTTPXMock
 import json
+
+import pytest
+from mcp.types import TextContent
+from pytest_httpx import HTTPXMock
+
+from mcp_argentina.infrastructure.container import Container
+from mcp_argentina.infrastructure.mcp.server import (
+    call_tool,
+    get_container,
+    get_prompt,
+    list_prompts,
+    list_resources,
+    list_tools,
+    read_resource,
+    server,
+)
 
 # Configurar pytest-httpx para no fallar con mocks no usados
 pytestmark = pytest.mark.httpx_mock(assert_all_responses_were_requested=False)
-
-from mcp_argentina.infrastructure.mcp.server import (
-    server,
-    list_tools,
-    list_resources,
-    list_prompts,
-    call_tool,
-    read_resource,
-    get_prompt,
-    get_container,
-)
-from mcp_argentina.infrastructure.container import Container
-from mcp.types import TextContent
 
 
 @pytest.fixture(autouse=True)
@@ -32,6 +33,7 @@ async def reset_container():
     Container.reset()
     # Reset global en server.py también
     import mcp_argentina.infrastructure.mcp.server as server_module
+
     server_module._container = None
     yield
     Container.reset()
@@ -128,14 +130,25 @@ def mock_dolar_responses(httpx_mock: HTTPXMock):
 def mock_historicos(httpx_mock: HTTPXMock):
     """Mock de históricos."""
     from datetime import date, timedelta
+
     hoy = date.today()
-    
+
     # Histórico blue
     httpx_mock.add_response(
         url="https://api.argentinadatos.com/v1/cotizaciones/dolares/blue",
         json=[
-            {"casa": "blue", "compra": 1350, "venta": 1400, "fecha": (hoy - timedelta(days=2)).isoformat()},
-            {"casa": "blue", "compra": 1360, "venta": 1410, "fecha": (hoy - timedelta(days=1)).isoformat()},
+            {
+                "casa": "blue",
+                "compra": 1350,
+                "venta": 1400,
+                "fecha": (hoy - timedelta(days=2)).isoformat(),
+            },
+            {
+                "casa": "blue",
+                "compra": 1360,
+                "venta": 1410,
+                "fecha": (hoy - timedelta(days=1)).isoformat(),
+            },
             {"casa": "blue", "compra": 1370, "venta": 1420, "fecha": hoy.isoformat()},
         ],
     )
@@ -149,7 +162,7 @@ class TestMCPToolsE2E:
     async def test_get_dolar_blue_e2e(self, mock_dolar_responses) -> None:
         """Test completo de get_dolar blue."""
         result = await call_tool("get_dolar", {"tipo": "blue"})
-        
+
         assert len(result) == 1
         assert isinstance(result[0], TextContent)
         assert "Blue" in result[0].text
@@ -160,7 +173,7 @@ class TestMCPToolsE2E:
     async def test_get_dolar_oficial_e2e(self, mock_dolar_responses) -> None:
         """Test completo de get_dolar oficial."""
         result = await call_tool("get_dolar", {"tipo": "oficial"})
-        
+
         assert len(result) == 1
         assert "Oficial" in result[0].text
         assert "950" in result[0].text
@@ -169,7 +182,7 @@ class TestMCPToolsE2E:
     async def test_get_cotizaciones_e2e(self, mock_dolar_responses) -> None:
         """Test completo de get_cotizaciones."""
         result = await call_tool("get_cotizaciones", {})
-        
+
         assert len(result) == 1
         text = result[0].text
         assert "Cotizaciones" in text
@@ -179,13 +192,16 @@ class TestMCPToolsE2E:
     @pytest.mark.asyncio
     async def test_convertir_ars_a_usd_e2e(self, mock_dolar_responses) -> None:
         """Test completo de conversión ARS a USD."""
-        result = await call_tool("convertir", {
-            "monto": 140000,
-            "de": "ARS",
-            "a": "USD",
-            "tipo_cambio": "blue",
-        })
-        
+        result = await call_tool(
+            "convertir",
+            {
+                "monto": 140000,
+                "de": "ARS",
+                "a": "USD",
+                "tipo_cambio": "blue",
+            },
+        )
+
         assert len(result) == 1
         text = result[0].text
         assert "Conversión" in text
@@ -197,13 +213,16 @@ class TestMCPToolsE2E:
     @pytest.mark.asyncio
     async def test_convertir_usd_a_ars_e2e(self, mock_dolar_responses) -> None:
         """Test completo de conversión USD a ARS."""
-        result = await call_tool("convertir", {
-            "monto": 100,
-            "de": "USD",
-            "a": "ARS",
-            "tipo_cambio": "blue",
-        })
-        
+        result = await call_tool(
+            "convertir",
+            {
+                "monto": 100,
+                "de": "USD",
+                "a": "ARS",
+                "tipo_cambio": "blue",
+            },
+        )
+
         assert len(result) == 1
         text = result[0].text
         assert "Conversión" in text
@@ -213,26 +232,32 @@ class TestMCPToolsE2E:
     @pytest.mark.asyncio
     async def test_convertir_monedas_iguales_error(self, mock_dolar_responses) -> None:
         """Debe fallar si origen y destino son iguales."""
-        result = await call_tool("convertir", {
-            "monto": 100,
-            "de": "USD",
-            "a": "USD",
-            "tipo_cambio": "blue",
-        })
-        
+        result = await call_tool(
+            "convertir",
+            {
+                "monto": 100,
+                "de": "USD",
+                "a": "USD",
+                "tipo_cambio": "blue",
+            },
+        )
+
         assert len(result) == 1
         assert "❌" in result[0].text or "error" in result[0].text.lower()
 
     @pytest.mark.asyncio
     async def test_convertir_monto_negativo_error(self, mock_dolar_responses) -> None:
         """Debe fallar con monto negativo."""
-        result = await call_tool("convertir", {
-            "monto": -100,
-            "de": "ARS",
-            "a": "USD",
-            "tipo_cambio": "blue",
-        })
-        
+        result = await call_tool(
+            "convertir",
+            {
+                "monto": -100,
+                "de": "ARS",
+                "a": "USD",
+                "tipo_cambio": "blue",
+            },
+        )
+
         assert len(result) == 1
         assert "❌" in result[0].text or "error" in result[0].text.lower()
 
@@ -240,7 +265,7 @@ class TestMCPToolsE2E:
     async def test_get_riesgo_pais_e2e(self, mock_dolar_responses) -> None:
         """Test completo de riesgo país."""
         result = await call_tool("get_riesgo_pais", {})
-        
+
         assert len(result) == 1
         text = result[0].text
         assert "Riesgo" in text or "riesgo" in text
@@ -250,7 +275,7 @@ class TestMCPToolsE2E:
     async def test_tool_inexistente_error(self, mock_dolar_responses) -> None:
         """Debe manejar tool inexistente."""
         result = await call_tool("tool_que_no_existe", {})
-        
+
         assert len(result) == 1
         assert "❌" in result[0].text or "no encontrado" in result[0].text.lower()
 
@@ -262,7 +287,7 @@ class TestMCPResourcesE2E:
     async def test_read_cotizaciones_actual(self, mock_dolar_responses) -> None:
         """Test completo de resource cotizaciones/actual."""
         result = await read_resource("economia://cotizaciones/actual")
-        
+
         data = json.loads(result)
         assert "timestamp" in data
         assert "cotizaciones" in data
@@ -272,7 +297,7 @@ class TestMCPResourcesE2E:
     async def test_read_indicadores_resumen(self, mock_dolar_responses) -> None:
         """Test completo de resource indicadores/resumen."""
         result = await read_resource("economia://indicadores/resumen")
-        
+
         data = json.loads(result)
         assert "dolar_blue" in data
         assert "dolar_oficial" in data
@@ -284,7 +309,7 @@ class TestMCPResourcesE2E:
     async def test_read_resource_inexistente(self, mock_dolar_responses) -> None:
         """Debe manejar resource inexistente."""
         result = await read_resource("economia://no/existe")
-        
+
         assert "no encontrado" in result.lower()
 
 
@@ -295,7 +320,7 @@ class TestMCPPromptsE2E:
     async def test_get_prompt_analisis_economico(self) -> None:
         """Test completo de prompt analisis_economico."""
         result = await get_prompt("analisis_economico", {"enfoque": "general"})
-        
+
         assert len(result) == 1
         assert result[0].role == "user"
         text = result[0].content.text
@@ -306,7 +331,7 @@ class TestMCPPromptsE2E:
     async def test_get_prompt_comparar_dolares(self) -> None:
         """Test completo de prompt comparar_dolares."""
         result = await get_prompt("comparar_dolares", {"tipos": "blue,oficial,mep"})
-        
+
         assert len(result) == 1
         text = result[0].content.text
         assert "Compara" in text or "compara" in text
@@ -316,7 +341,7 @@ class TestMCPPromptsE2E:
     async def test_get_prompt_inexistente(self) -> None:
         """Debe manejar prompt inexistente."""
         result = await get_prompt("prompt_que_no_existe", {})
-        
+
         assert len(result) == 1
         assert "no encontrado" in result[0].content.text.lower()
 
@@ -336,12 +361,12 @@ class TestMCPCacheE2E:
                 "fechaActualizacion": "2026-03-29T12:00:00-03:00",
             },
         )
-        
+
         # Primera llamada
         result1 = await call_tool("get_dolar", {"tipo": "blue"})
         # Segunda llamada (debe usar cache)
         result2 = await call_tool("get_dolar", {"tipo": "blue"})
-        
+
         assert result1[0].text == result2[0].text
         # httpx_mock solo registró una llamada porque la segunda fue cache hit
 
@@ -392,7 +417,7 @@ class TestMCPNewToolsE2E:
     async def test_get_historico_e2e(self, mock_dolar_responses, mock_historicos) -> None:
         """Test completo de get_historico."""
         result = await call_tool("get_historico", {"tipo": "blue", "dias": 7})
-        
+
         assert len(result) == 1
         text = result[0].text
         assert "Histórico" in text or "historico" in text.lower()
@@ -401,7 +426,7 @@ class TestMCPNewToolsE2E:
     async def test_get_inflacion_e2e(self, mock_dolar_responses) -> None:
         """Test completo de get_inflacion."""
         result = await call_tool("get_inflacion", {})
-        
+
         assert len(result) == 1
         text = result[0].text
         assert "Inflación" in text or "inflacion" in text.lower()
@@ -411,7 +436,7 @@ class TestMCPNewToolsE2E:
     async def test_get_variacion_e2e(self, mock_dolar_responses, mock_historicos) -> None:
         """Test completo de get_variacion."""
         result = await call_tool("get_variacion", {"tipo": "blue", "dias": 7})
-        
+
         assert len(result) == 1
         text = result[0].text
         assert "Variación" in text or "variacion" in text.lower()
@@ -420,7 +445,7 @@ class TestMCPNewToolsE2E:
     async def test_get_grafico_e2e(self, mock_dolar_responses, mock_historicos) -> None:
         """Test completo de get_grafico."""
         result = await call_tool("get_grafico", {"tipo": "blue", "dias": 7})
-        
+
         assert len(result) == 1
         text = result[0].text
         # Debe contener caracteres de gráfico ASCII

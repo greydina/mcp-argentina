@@ -37,16 +37,17 @@ class Container:
         >>> historicos = await container.historicos.obtener_historico_dolar("blue")
     """
 
-    _instance = None
+    _instance: "Container | None" = None
+    _initialized: bool = False
 
-    def __new__(cls):
+    def __new__(cls) -> "Container":
         """Singleton: retorna instancia existente o crea nueva."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, cache_ttl: int = 60):
+    def __init__(self, cache_ttl: int = 60) -> None:
         """
         Inicializa el container.
 

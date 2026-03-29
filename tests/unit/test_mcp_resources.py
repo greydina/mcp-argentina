@@ -50,7 +50,7 @@ class TestGetCotizacionesActual:
         """Debe retornar estructura con timestamp, cotizaciones, resumen."""
         httpx_mock.add_response(json=mock_dolarapi_response)
         result = await get_cotizaciones_actual()
-        
+
         assert "timestamp" in result
         assert "cotizaciones" in result
         assert "resumen" in result
@@ -62,7 +62,7 @@ class TestGetCotizacionesActual:
         """Debe incluir cotizaciones por tipo."""
         httpx_mock.add_response(json=mock_dolarapi_response)
         result = await get_cotizaciones_actual()
-        
+
         assert "blue" in result["cotizaciones"]
         assert "oficial" in result["cotizaciones"]
         assert "mep" in result["cotizaciones"]
@@ -74,7 +74,7 @@ class TestGetCotizacionesActual:
         """Debe calcular indicadores en resumen."""
         httpx_mock.add_response(json=mock_dolarapi_response)
         result = await get_cotizaciones_actual()
-        
+
         resumen = result["resumen"]
         assert "dolar_blue" in resumen
         assert "dolar_oficial" in resumen
@@ -87,7 +87,7 @@ class TestGetCotizacionesActual:
         """Debe calcular brecha correctamente."""
         httpx_mock.add_response(json=mock_dolarapi_response)
         result = await get_cotizaciones_actual()
-        
+
         # Blue 1400, Oficial 950 -> brecha = ((1400-950)/950)*100 = 47.37%
         brecha = result["resumen"]["brecha_porcentaje"]
         assert 45 < brecha < 50  # aproximadamente 47%
@@ -99,7 +99,7 @@ class TestGetCotizacionesActual:
         """Cada cotización debe tener campos necesarios."""
         httpx_mock.add_response(json=mock_dolarapi_response)
         result = await get_cotizaciones_actual()
-        
+
         blue = result["cotizaciones"]["blue"]
         assert "compra" in blue
         assert "venta" in blue
@@ -116,7 +116,7 @@ class TestGetIndicadoresResumen:
         """Debe retornar estructura con indicadores y metadata."""
         httpx_mock.add_response(json=mock_dolarapi_response)
         result = await get_indicadores_resumen()
-        
+
         assert "timestamp" in result
         assert "indicadores" in result
         assert "metadata" in result
@@ -128,7 +128,7 @@ class TestGetIndicadoresResumen:
         """Debe incluir source en metadata."""
         httpx_mock.add_response(json=mock_dolarapi_response)
         result = await get_indicadores_resumen()
-        
+
         assert result["metadata"]["source"] == "dolarapi.com"
         assert "version" in result["metadata"]
 
@@ -139,7 +139,7 @@ class TestGetIndicadoresResumen:
         """Debe listar cotizaciones disponibles."""
         httpx_mock.add_response(json=mock_dolarapi_response)
         result = await get_indicadores_resumen()
-        
+
         disponibles = result["indicadores"]["cotizaciones_disponibles"]
         assert "blue" in disponibles
         assert "oficial" in disponibles

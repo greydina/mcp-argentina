@@ -6,9 +6,12 @@ Provee tools, resources y prompts para consultar cotizaciones,
 indicadores económicos y realizar conversiones.
 """
 
+from typing import Any
+
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import (
+    AnyUrl,
     Prompt,
     PromptArgument,
     PromptMessage,
@@ -40,7 +43,7 @@ def get_container() -> Container:
 # ============================================================================
 
 
-@server.list_tools()
+@server.list_tools()  # type: ignore[no-untyped-call,misc]
 async def list_tools() -> list[Tool]:
     """Lista de tools disponibles."""
     return [
@@ -162,7 +165,7 @@ async def list_tools() -> list[Tool]:
     ]
 
 
-@server.call_tool()
+@server.call_tool()  # type: ignore[no-untyped-call,misc]
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     """Ejecuta un tool."""
     container = get_container()
@@ -258,10 +261,12 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return [TextContent(type="text", text=result)]
 
     elif name == "get_moneda":
-        moneda = arguments["moneda"].upper()
-        cot = await container.monedas.obtener_moneda(moneda)
+        moneda_code = arguments["moneda"].upper()
+        moneda_cot = await container.monedas.obtener_moneda(moneda_code)
         result = (
-            f"💱 {cot.nombre} ({cot.moneda})\nCompra: ${cot.compra:,.2f}\nVenta: ${cot.venta:,.2f}"
+            f"💱 {moneda_cot.nombre} ({moneda_cot.moneda})\n"
+            f"Compra: ${moneda_cot.compra:,.2f}\n"
+            f"Venta: ${moneda_cot.venta:,.2f}"
         )
         return [TextContent(type="text", text=result)]
 
@@ -275,13 +280,16 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     elif name == "get_variacion":
         tipo = arguments.get("tipo", "blue")
         dias = arguments.get("dias", 7)
-        var = await container.historicos.obtener_variacion_dolar(tipo, dias=dias)
-        emoji = "📈" if var["variacion_porcentual"] > 0 else "📉"
+        var_data = await container.historicos.obtener_variacion_dolar(tipo, dias=dias)
+        variacion_pct = float(var_data["variacion_porcentual"])
+        valor_inicio = float(var_data["valor_inicio"])
+        valor_fin = float(var_data["valor_fin"])
+        emoji = "📈" if variacion_pct > 0 else "📉"
         result = (
             f"{emoji} Variación Dólar {tipo.upper()} ({dias} días)\n"
-            f"Inicio: ${var['valor_inicio']:,.0f}\n"
-            f"Actual: ${var['valor_fin']:,.0f}\n"
-            f"Variación: {var['variacion_porcentual']:+.1f}%"
+            f"Inicio: ${valor_inicio:,.0f}\n"
+            f"Actual: ${valor_fin:,.0f}\n"
+            f"Variación: {variacion_pct:+.1f}%"
         )
         return [TextContent(type="text", text=result)]
 
@@ -308,24 +316,24 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 # ============================================================================
 
 
-@server.list_resources()
+@server.list_resources()  # type: ignore[no-untyped-call,misc]
 async def list_resources() -> list[Resource]:
     """Lista de resources disponibles."""
     return [
         Resource(
-            uri="economia://cotizaciones/actual",
+            uri=AnyUrl("economia://cotizaciones/actual"),
             name="Cotizaciones Actuales",
             description="Snapshot de todas las cotizaciones de dólar",
             mimeType="application/json",
         ),
         Resource(
-            uri="economia://indicadores/resumen",
+            uri=AnyUrl("economia://indicadores/resumen"),
             name="Resumen de Indicadores",
             description="Indicadores económicos clave de Argentina",
             mimeType="application/json",
         ),
         Resource(
-            uri="economia://inflacion/actual",
+            uri=AnyUrl("economia://inflacion/actual"),
             name="Inflación Actual",
             description="Datos de inflación mensual, interanual y acumulada",
             mimeType="application/json",
@@ -333,7 +341,7 @@ async def list_resources() -> list[Resource]:
     ]
 
 
-@server.read_resource()
+@server.read_resource()  # type: ignore[no-untyped-call,misc]
 async def read_resource(uri: str) -> str:
     """Lee un resource."""
     import json
@@ -342,7 +350,7 @@ async def read_resource(uri: str) -> str:
 
     if uri == "economia://cotizaciones/actual":
         cotizaciones = await container.repository.obtener_todas()
-        data = {
+        cot_data: dict[str, Any] = {
             "timestamp": str(cotizaciones[0].fecha_actualizacion) if cotizaciones else None,
             "cotizaciones": {
                 cot.nombre.lower(): {
@@ -353,7 +361,7 @@ async def read_resource(uri: str) -> str:
                 for cot in cotizaciones
             },
         }
-        return json.dumps(data, indent=2, ensure_ascii=False)
+        return json.dumps(cot_data, indent=2, ensure_ascii=False)
 
     elif uri == "economia://indicadores/resumen":
         cotizaciones = await container.repository.obtener_todas()
@@ -372,7 +380,7 @@ async def read_resource(uri: str) -> str:
         if blue_venta and oficial_venta and oficial_venta > 0:
             brecha = round(((blue_venta - oficial_venta) / oficial_venta) * 100, 2)
 
-        data = {
+        data: dict[str, Any] = {
             "dolar_blue": blue_venta,
             "dolar_oficial": oficial_venta,
             "brecha_porcentaje": brecha,
@@ -385,13 +393,13 @@ async def read_resource(uri: str) -> str:
 
     elif uri == "economia://inflacion/actual":
         inflacion = await container.inflacion.obtener_actual()
-        data = {
+        infl_data: dict[str, Any] = {
             "mensual": inflacion.mensual,
             "interanual": inflacion.interanual,
             "acumulada_anio": inflacion.acumulada_anio,
             "fecha_ultimo_dato": inflacion.fecha_ultimo_dato.isoformat(),
         }
-        return json.dumps(data, indent=2, ensure_ascii=False)
+        return json.dumps(infl_data, indent=2, ensure_ascii=False)
 
     else:
         return f"Resource '{uri}' no encontrado"
@@ -402,7 +410,7 @@ async def read_resource(uri: str) -> str:
 # ============================================================================
 
 
-@server.list_prompts()
+@server.list_prompts()  # type: ignore[no-untyped-call,misc]
 async def list_prompts() -> list[Prompt]:
     """Lista de prompts disponibles."""
     return [
@@ -431,7 +439,7 @@ async def list_prompts() -> list[Prompt]:
     ]
 
 
-@server.get_prompt()
+@server.get_prompt()  # type: ignore[no-untyped-call,misc]
 async def get_prompt(name: str, arguments: dict | None = None) -> list[PromptMessage]:
     """Obtiene un prompt."""
     arguments = arguments or {}

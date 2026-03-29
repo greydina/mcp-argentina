@@ -50,7 +50,7 @@ class Precio(BaseModel):
             raise ValueError("El valor del precio no puede ser negativo")
         return v
 
-    def __add__(self, other: Self) -> Self:
+    def __add__(self, other: Self) -> "Precio":
         """
         Suma dos precios.
 
@@ -72,7 +72,7 @@ class Precio(BaseModel):
             )
         return Precio(valor=self.valor + other.valor, moneda=self.moneda)
 
-    def __sub__(self, other: Self) -> Self:
+    def __sub__(self, other: Self) -> "Precio":
         """
         Resta dos precios.
 
@@ -95,7 +95,7 @@ class Precio(BaseModel):
         # Permitimos valores negativos en resta (para representar pérdidas/spreads)
         return Precio.model_construct(valor=self.valor - other.valor, moneda=self.moneda)
 
-    def __mul__(self, factor: float | Decimal) -> Self:
+    def __mul__(self, factor: float | Decimal) -> "Precio":
         """
         Multiplica el precio por un factor.
 
@@ -113,7 +113,7 @@ class Precio(BaseModel):
             raise TypeError(f"No se puede multiplicar Precio por {type(factor)}")
         return Precio(valor=self.valor * Decimal(str(factor)), moneda=self.moneda)
 
-    def __truediv__(self, divisor: float | Decimal) -> Self:
+    def __truediv__(self, divisor: float | Decimal) -> "Precio":
         """
         Divide el precio por un divisor.
 
