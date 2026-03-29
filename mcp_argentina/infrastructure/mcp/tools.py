@@ -1,20 +1,38 @@
-"""Tools MCP - definición de herramientas disponibles."""
+"""
+Tools MCP - Modelos de input y funciones de ayuda.
 
-from typing import Any, Optional
+Este módulo contiene los schemas Pydantic para validación de inputs
+de los tools. La implementación real está en server.py.
+
+NOTA: Este archivo se mantiene por compatibilidad con tests existentes.
+La implementación principal está en server.py usando el SDK MCP.
+"""
+
+from typing import Any
 from pydantic import BaseModel, Field, field_validator
-import httpx
+
+
+# ============================================================================
+# INPUT SCHEMAS
+# ============================================================================
 
 
 class GetDolarInput(BaseModel):
-    """Input para get_dolar tool."""
+    """
+    Schema de validación para get_dolar tool.
+    
+    Attributes:
+        tipo: Tipo de dólar a consultar
+    """
     tipo: str = Field(
         description="Tipo de dólar: 'blue', 'oficial', 'mep', 'ccl', 'cripto', 'tarjeta'"
     )
 
     @field_validator("tipo")
+    @classmethod
     def validate_tipo(cls, v: str) -> str:
         """Valida que el tipo de dólar sea válido."""
-        tipos_validos = ["blue", "oficial", "mep", "ccl", "cripto", "tarjeta"]
+        tipos_validos = ["blue", "oficial", "mep", "ccl", "cripto", "tarjeta", "mayorista"]
         if v.lower() not in tipos_validos:
             raise ValueError(
                 f"Tipo de dólar inválido. Tipos válidos: {', '.join(tipos_validos)}"
@@ -23,7 +41,15 @@ class GetDolarInput(BaseModel):
 
 
 class ConvertirInput(BaseModel):
-    """Input para convertir tool."""
+    """
+    Schema de validación para convertir tool.
+    
+    Attributes:
+        monto: Cantidad a convertir
+        de: Moneda origen
+        a: Moneda destino
+        tipo_cambio: Tipo de cambio a usar
+    """
     monto: float = Field(description="Monto a convertir", gt=0)
     de: str = Field(description="Moneda origen: 'ARS' o 'USD'")
     a: str = Field(description="Moneda destino: 'ARS' o 'USD'")
@@ -32,6 +58,7 @@ class ConvertirInput(BaseModel):
     )
 
     @field_validator("de", "a")
+    @classmethod
     def validate_moneda(cls, v: str) -> str:
         """Valida que la moneda sea ARS o USD."""
         if v.upper() not in ["ARS", "USD"]:
@@ -39,6 +66,7 @@ class ConvertirInput(BaseModel):
         return v.upper()
 
     @field_validator("tipo_cambio")
+    @classmethod
     def validate_tipo_cambio(cls, v: str) -> str:
         """Valida que el tipo de cambio sea válido."""
         tipos_validos = ["blue", "oficial", "mep", "ccl"]
@@ -49,22 +77,19 @@ class ConvertirInput(BaseModel):
         return v.lower()
 
 
+# ============================================================================
+# FUNCIONES LEGACY (para compatibilidad con tests)
+# ============================================================================
+
+import httpx
+
+
 async def get_dolar(tipo: str) -> dict[str, Any]:
     """
     Obtiene la cotización actual de un tipo específico de dólar.
-
-    Args:
-        tipo: Tipo de dólar ('blue', 'oficial', 'mep', 'ccl', 'cripto', 'tarjeta')
-
-    Returns:
-        Diccionario con:
-        - compra: precio de compra
-        - venta: precio de venta
-        - fecha: fecha de actualización
-        - tipo: tipo de dólar consultado
-
-    Raises:
-        httpx.HTTPError: Si falla la petición a la API
+    
+    DEPRECATED: Usar server.py call_tool() en su lugar.
+    Se mantiene para compatibilidad con tests existentes.
     """
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(f"https://dolarapi.com/v1/dolares/{tipo}")
@@ -83,27 +108,14 @@ async def get_dolar(tipo: str) -> dict[str, Any]:
 async def get_cotizaciones() -> dict[str, Any]:
     """
     Obtiene todas las cotizaciones de dólar disponibles.
-
-    Returns:
-        Diccionario con todas las cotizaciones por tipo:
-        {
-            "blue": {...},
-            "oficial": {...},
-            "mep": {...},
-            "ccl": {...},
-            "cripto": {...},
-            "tarjeta": {...}
-        }
-
-    Raises:
-        httpx.HTTPError: Si falla la petición a la API
+    
+    DEPRECATED: Usar server.py call_tool() en su lugar.
     """
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get("https://dolarapi.com/v1/dolares")
         response.raise_for_status()
         data = response.json()
 
-        # Organizar por tipo (casa de cambio)
         cotizaciones = {}
         for item in data:
             casa = item.get("casa", "").lower()
@@ -122,42 +134,20 @@ async def convertir(
     monto: float, de: str, a: str, tipo_cambio: str
 ) -> dict[str, Any]:
     """
-    Convierte un monto entre ARS y USD usando un tipo de cambio específico.
-
-    Args:
-        monto: Cantidad a convertir (debe ser > 0)
-        de: Moneda origen ('ARS' o 'USD')
-        a: Moneda destino ('ARS' o 'USD')
-        tipo_cambio: Tipo de cambio a usar ('blue', 'oficial', 'mep', 'ccl')
-
-    Returns:
-        Diccionario con:
-        - monto_original: cantidad en moneda origen
-        - monto_convertido: cantidad en moneda destino
-        - moneda_origen: moneda de origen
-        - moneda_destino: moneda de destino
-        - tipo_cambio: tipo de cambio usado
-        - cotizacion_usada: cotización aplicada (compra o venta)
-        - valor_cotizacion: valor numérico de la cotización
-
-    Raises:
-        ValueError: Si las monedas son iguales o el tipo de cambio no existe
-        httpx.HTTPError: Si falla la petición a la API
+    Convierte un monto entre ARS y USD.
+    
+    DEPRECATED: Usar server.py call_tool() en su lugar.
     """
     if de == a:
         raise ValueError("La moneda origen y destino no pueden ser iguales")
 
-    # Obtener cotización
     cotizacion = await get_dolar(tipo_cambio)
 
-    # Determinar si usamos compra o venta
-    # Si convertimos de USD a ARS, usamos venta (vendemos USD)
-    # Si convertimos de ARS a USD, usamos compra (compramos USD)
     if de == "USD" and a == "ARS":
         valor = cotizacion["venta"]
         tipo_operacion = "venta"
         monto_convertido = monto * valor
-    else:  # de == "ARS" and a == "USD"
+    else:
         valor = cotizacion["compra"]
         tipo_operacion = "compra"
         monto_convertido = monto / valor

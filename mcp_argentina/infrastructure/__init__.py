@@ -1,1 +1,5 @@
-"""Infrastructure layer - Adapters e implementaciones concretas."""
+"""Infrastructure layer."""
+
+from mcp_argentina.infrastructure.container import Container
+
+__all__ = ["Container"]

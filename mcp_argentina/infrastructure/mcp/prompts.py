@@ -1,4 +1,9 @@
-"""Prompts MCP - templates de prompts para análisis económicos."""
+"""
+Prompts MCP - Templates de prompts para análisis económicos.
+
+Este módulo contiene los templates de prompts disponibles.
+La implementación MCP real está en server.py.
+"""
 
 from typing import Any
 
@@ -7,11 +12,11 @@ def get_analisis_economico_prompt() -> dict[str, Any]:
     """
     Prompt: analisis_economico
     
-    Template para realizar un análisis completo de la situación económica argentina
-    basado en cotizaciones y datos disponibles.
+    Template para realizar un análisis completo de la situación
+    económica argentina basado en cotizaciones y datos disponibles.
     
     Returns:
-        Definición del prompt con placeholders y estructura.
+        Definición del prompt con estructura y template.
     """
     return {
         "name": "analisis_economico",
@@ -28,15 +33,17 @@ def get_analisis_economico_prompt() -> dict[str, Any]:
 **Datos disponibles:**
 - Cotizaciones del dólar (blue, oficial, MEP, CCL)
 - Brecha cambiaria
+- Riesgo país
 - Contexto temporal
 
 **Enfoque:** {enfoque}
 
 **Tu análisis debe incluir:**
+
 1. **Situación actual del mercado cambiario**
    - Cotizaciones principales (blue, oficial)
    - Brecha entre dólar blue y oficial
-   - Significado económico de la brecha
+   - Significado económico de la brecha actual
 
 2. **Interpretación económica**
    - Qué indican las cotizaciones sobre la economía
@@ -63,7 +70,8 @@ def get_comparar_dolares_prompt() -> dict[str, Any]:
     """
     Prompt: comparar_dolares
     
-    Template para comparar diferentes tipos de cambio y explicar sus diferencias.
+    Template para comparar diferentes tipos de cambio
+    y explicar sus diferencias y usos.
     
     Returns:
         Definición del prompt con estructura de comparación.
@@ -85,67 +93,36 @@ Para cada tipo, explica:
 1. **Definición y características**
    - Qué es este tipo de dólar
    - Cómo se opera/accede a él
-   - Marco regulatorio
+   - Marco regulatorio (legal vs informal)
 
 2. **Cotización actual**
    - Precio de compra y venta
    - Última actualización
-   - Brecha con otros tipos
+   - Spread (diferencia compra-venta)
 
-3. **Cuándo conviene usarlo**
+3. **Casos de uso**
+   - Para qué tipo de operaciones se usa
+   - Quiénes lo utilizan típicamente
    - Ventajas y desventajas
-   - Casos de uso típicos
-   - Requisitos o limitaciones
 
-4. **Comparación relativa**
-   - Diferencias de precio entre los tipos consultados
-   - Por qué existen esas diferencias
-   - Qué implican esas brechas
+4. **Comparación directa**
+   - Tabla comparativa de cotizaciones
+   - Diferencias porcentuales entre tipos
+   - Cuál conviene según el caso
 
-**Formato:** Tabla comparativa seguida de análisis.
-**Tono:** Educativo, accesible para no especialistas.
-**Incluir:** Ejemplos prácticos.
+**Recomendación final:**
+Indica cuál tipo de dólar usar según:
+- Ahorro personal
+- Operaciones comerciales
+- Viajes al exterior
+- Inversiones
+
+**Formato:** Estructurado con tablas donde corresponda.
+**Idioma:** Español argentino.
 """,
     }
 
 
-# Registry de prompts disponibles
-AVAILABLE_PROMPTS = {
-    "analisis_economico": get_analisis_economico_prompt,
-    "comparar_dolares": get_comparar_dolares_prompt,
-}
-
-
-def get_prompt(name: str) -> dict[str, Any]:
-    """
-    Obtiene un prompt por nombre.
-    
-    Args:
-        name: Nombre del prompt
-        
-    Returns:
-        Definición del prompt
-        
-    Raises:
-        KeyError: Si el prompt no existe
-    """
-    if name not in AVAILABLE_PROMPTS:
-        raise KeyError(f"Prompt '{name}' no encontrado. Disponibles: {list(AVAILABLE_PROMPTS.keys())}")
-    
-    return AVAILABLE_PROMPTS[name]()
-
-
-def list_prompts() -> list[dict[str, str]]:
-    """
-    Lista todos los prompts disponibles.
-    
-    Returns:
-        Lista de prompts con nombre y descripción.
-    """
-    return [
-        {
-            "name": name,
-            "description": func()["description"],
-        }
-        for name, func in AVAILABLE_PROMPTS.items()
-    ]
+# Constantes para compatibilidad con tests legacy
+PROMPT_ANALISIS_ECONOMICO = get_analisis_economico_prompt()["template"]
+PROMPT_COMPARAR_DOLARES = get_comparar_dolares_prompt()["template"]

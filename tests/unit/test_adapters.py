@@ -71,7 +71,7 @@ class TestDolarAPIAdapter:
 
         adapter = DolarAPIAdapter()
 
-        with pytest.raises(ConnectionError, match="Error al consultar"):
+        with pytest.raises(ConnectionError, match="Error HTTP"):
             await adapter.obtener_dolar("blue")
 
         await adapter.close()
@@ -137,11 +137,19 @@ class TestDolarAPIAdapter:
                 "fechaActualizacion": "2024-03-28T15:30:00-03:00",
             },
         )
+        httpx_mock.add_response(
+            url="https://dolarapi.com/v1/dolares/mayorista",
+            json={
+                "compra": 880.0,
+                "venta": 890.0,
+                "fechaActualizacion": "2024-03-28T15:30:00-03:00",
+            },
+        )
 
         adapter = DolarAPIAdapter()
         cotizaciones = await adapter.obtener_todas()
 
-        assert len(cotizaciones) == 6
+        assert len(cotizaciones) == 7
         nombres = [c.nombre for c in cotizaciones]
         assert "Oficial" in nombres
         assert "Blue" in nombres
@@ -162,7 +170,7 @@ class TestDolarAPIAdapter:
             json=mock_dolarapi_blue_response,
         )
         # Mock el resto con errores
-        for endpoint in ["bolsa", "contadoconliqui", "tarjeta", "cripto"]:
+        for endpoint in ["bolsa", "contadoconliqui", "tarjeta", "cripto", "mayorista"]:
             httpx_mock.add_response(
                 url=f"https://dolarapi.com/v1/dolares/{endpoint}",
                 status_code=500,

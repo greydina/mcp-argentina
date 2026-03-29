@@ -1,4 +1,11 @@
-"""Resources MCP - recursos de solo lectura disponibles."""
+"""
+Resources MCP - Recursos de solo lectura.
+
+Este módulo contiene funciones helper para resources.
+La implementación MCP real está en server.py.
+
+NOTA: Mantenido para compatibilidad con tests existentes.
+"""
 
 from typing import Any
 import httpx
@@ -9,7 +16,6 @@ async def get_cotizaciones_actual() -> dict[str, Any]:
     Resource: economia://cotizaciones/actual
     
     Proporciona un snapshot de todas las cotizaciones actuales.
-    Este es un resource de solo lectura que puede ser usado para contexto.
     
     Returns:
         Diccionario con:
@@ -22,7 +28,7 @@ async def get_cotizaciones_actual() -> dict[str, Any]:
         response.raise_for_status()
         data = response.json()
 
-        # Organizar cotizaciones
+        # Organizar cotizaciones por tipo
         cotizaciones = {}
         for item in data:
             casa = item.get("casa", "").lower()
@@ -34,14 +40,14 @@ async def get_cotizaciones_actual() -> dict[str, Any]:
                     "nombre": item.get("nombre"),
                 }
 
-        # Calcular resumen
+        # Calcular resumen con indicadores clave
         resumen = {}
         if "blue" in cotizaciones:
             resumen["dolar_blue"] = cotizaciones["blue"]["venta"]
         if "oficial" in cotizaciones:
             resumen["dolar_oficial"] = cotizaciones["oficial"]["venta"]
         
-        # Calcular brecha si tenemos ambos
+        # Calcular brecha cambiaria
         if "dolar_blue" in resumen and "dolar_oficial" in resumen:
             oficial = resumen["dolar_oficial"]
             blue = resumen["dolar_blue"]
@@ -60,12 +66,11 @@ async def get_indicadores_resumen() -> dict[str, Any]:
     """
     Resource: economia://indicadores/resumen
     
-    Proporciona un resumen de indicadores económicos clave de Argentina.
+    Proporciona un resumen de indicadores económicos clave.
     
     Returns:
-        Diccionario con indicadores principales y su contexto.
+        Diccionario con indicadores principales y metadata.
     """
-    # Obtener cotizaciones actuales
     cotizaciones_data = await get_cotizaciones_actual()
     
     return {
@@ -79,3 +84,24 @@ async def get_indicadores_resumen() -> dict[str, Any]:
             "version": "0.1.0",
         },
     }
+
+
+async def get_riesgo_pais() -> dict[str, Any]:
+    """
+    Resource: economia://riesgo-pais
+    
+    Proporciona el riesgo país actual de Argentina.
+    
+    Returns:
+        Diccionario con valor y metadata.
+    """
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get("https://dolarapi.com/v1/ambito/riesgo-pais")
+        response.raise_for_status()
+        data = response.json()
+        
+        return {
+            "valor": data.get("valor"),
+            "fecha": data.get("fecha"),
+            "source": "ambito.com",
+        }
